@@ -1,99 +1,66 @@
-# Wells-Banking — Portfolio Demo
+# Wells Banking
 
-A responsive, Wells Fargo-inspired **independent portfolio banking demo** built with React, Vite, JavaScript, and Supabase. It uses original Northstar Demo Banking branding and is not affiliated with Wells Fargo or any financial institution.
+A minimal customer account application built with React, Vite, JavaScript, Supabase Auth, and PostgreSQL. This repository provides production-oriented authentication and private, database-backed customer records. It does **not** pretend to be a licensed bank or move money.
 
-> **Demo only:** sample balances are fictional. Never enter real banking credentials or financial information. This project is not a bank and does not process real payments.
+## Current scope
 
-## Features
-
-- Responsive banking-style homepage, navigation, service cards, and support content
-- Customer dashboard with sample balances, account overview, and recent activity
-- Account list and searchable transaction history
-- Signup/sign-in through Supabase Auth when configured
-- PostgreSQL schema for profiles, roles, accounts, transactions, ledger entries, and audit logs
-- Row Level Security for customer data isolation
-- Atomic demo-transfer function with ownership checks, row locks, balance validation, ledger entries, and idempotency
-- Offline demo mode that works without Supabase credentials
+- Email/password registration and sign-in using Supabase Auth.
+- Email password-reset flow.
+- A customer profile and customer-account record created in PostgreSQL when a user registers.
+- Row Level Security so authenticated customers can read only their own records.
+- Provider-linked bank-account and transaction tables for records later synchronized from a licensed provider.
+- No sample data, seed balances, generated bank account numbers, mock transactions, offline demo mode, transfer UI, or transfer RPC.
+- Money movement is deliberately disabled until a licensed banking/payment provider has been selected, contractually enabled, and integrated server-side.
 
 ## Stack
 
 - React + Vite + JavaScript
 - Supabase Auth + PostgreSQL + Row Level Security
-- CSS responsive layouts
-- ESLint
+- Responsive CSS and ESLint
 
 ## Run locally
 
-\`\`\`bash
+```bash
 npm install
 cp .env.example .env.local
+# Fill in the Supabase URL and publishable/anon key in .env.local
 npm run dev
-\`\`\`
+```
 
-The app starts in offline demo mode until valid Supabase environment variables are supplied. Run checks before deployment:
+Without valid Supabase settings, the app does not fall back to a demo. Authentication is disabled and the configuration issue is displayed. Run checks with:
 
-\`\`\`bash
+```bash
 npm run lint
 npm run build
-\`\`\`
+```
 
 ## Configure Supabase
 
 1. Create a Supabase project.
-2. Apply \`supabase/migrations/202610140001_initial_schema.sql\` in the Supabase SQL Editor or with the Supabase CLI.
-3. Copy the project URL and publishable/anon client key into \`.env.local\`.
-4. Create a test user through the app.
-5. Provision demo accounts through trusted SQL Editor or server-side administrative tooling. Never expose arbitrary account funding to anonymous users.
-6. Seed at least two test accounts with distinct account numbers if you want to test transfers.
-7. Configure email confirmation for the test environment as appropriate.
+2. Apply `supabase/migrations/202610140001_initial_schema.sql` through the Supabase CLI or SQL Editor.
+3. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` and in your deployment environment.
+4. Configure Auth email confirmation, password policy, SMTP/email delivery, redirect URLs, and rate limits for the intended environment.
+5. Register a test user using a real email address. The Auth trigger creates a `profiles` row and a `customer_accounts` row with `pending_provider` status. It does not create a bank account or balance.
 
-Example environment variables:
+Use only the Supabase publishable/anon key in browser environment variables. Never expose a service-role key in frontend code.
 
-- \`VITE_SUPABASE_URL\`
-- \`VITE_SUPABASE_ANON_KEY\`
+## Provider integration boundary
 
-Only use synthetic test identities and sample balances. Never put a Supabase service-role key in a frontend environment variable.
+The `bank_accounts` table is for accounts actually provisioned by a provider. The `transactions` table is for provider-sourced transaction records. The frontend has read-only access to records belonging to the signed-in customer. There are no client-side write policies for these tables.
 
-## Provisioning demo accounts
+Before showing actual bank account details or enabling financial operations, the next implementation phase must:
+1. Select a licensed provider appropriate for the operating country and product.
+2. Complete provider onboarding, business verification, and required approvals.
+3. Implement authenticated server-side provider API calls and signed webhook verification.
+4. Verify provider events, ownership, idempotency, replay protection, reconciliation, and audit logging.
+5. Add deposits, withdrawals, transfers, or payment flows only where the provider explicitly supports them and after security review.
 
-After registering a test user, find its UUID in Supabase Auth. Use the SQL Editor to insert two accounts owned by that user. Example (replace the UUID and account numbers with test values):
-
-\`\`\`sql
-insert into public.bank_accounts (user_id, account_number, account_type, balance_minor)
-values
-  ('YOUR_AUTH_USER_UUID', 'DEMO100001', 'Everyday Checking', 28475000),
-  ('YOUR_AUTH_USER_UUID', 'DEMO100002', 'Growth Savings', 12500000);
-\`\`\`
-
-Create a second test user and account if you want to test transfers between separate customers. Account creation and balance funding are deliberately not exposed through the browser.
-
-## Admin setup
-
-New users receive only the \`customer\` role. To provision an admin, use a trusted SQL Editor session and the exact user UUID:
-
-\`\`\`sql
-insert into public.user_roles (user_id, role)
-values ('YOUR_AUTH_USER_UUID', 'admin')
-on conflict (user_id) do update set role = excluded.role;
-\`\`\`
-
-Never provide a client-facing endpoint that lets users grant themselves admin access.
-
-## Security notes
-
-- Monetary values are integer minor units (kobo for NGN).
-- The browser cannot directly update account balances, ledger entries, roles, or transaction records.
-- Transfers execute inside a PostgreSQL transaction; debits, credits, ledger entries, and transaction records succeed or roll back together.
-- Row locks and idempotency checks reduce race conditions and duplicate processing.
-- RLS restricts account and transaction reads to owners and authorized admins.
-- Demo transfers have a fixed maximum amount and require authenticated users.
-
-This is educational demo infrastructure, not a production banking ledger. A real financial service requires independent security review, operational controls, regulatory authorization, and integration with an authorized financial institution.
+Do not manually seed fictional balances or transactions into a real environment. A customer-account row is an application record, not a deposit account, and a provider-reported balance is shown only when one exists in the database.
 
 ## Deployment
 
-Deploy the Vite app to Vercel. Set \`VITE_SUPABASE_URL\` and \`VITE_SUPABASE_ANON_KEY\` in the project environment settings and apply the SQL migration to Supabase before enabling authenticated workflows.
+Deploy the frontend to Vercel and set the two public Supabase environment variables in the project settings. Apply the SQL migration before enabling signups. Configure Supabase Auth redirect URLs for the production domain. A frontend build passing does not replace security review or a production integration test.
 
-## Branding
+## Brand and regulatory note
 
-Wells Fargo is referenced only as design inspiration. This project uses original Northstar Demo Banking branding and assets.
+This repository name is Wells Banking, but the application must not imply affiliation with Wells Fargo or another financial institution. Use only branding and services you are authorized to represent. This codebase alone does not make the operator a bank or authorize deposit-taking or money transmission.
