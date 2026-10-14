@@ -185,3 +185,38 @@ revoke all on function public.transfer_demo_funds(uuid,text,bigint,text,text) fr
 grant execute on function public.transfer_demo_funds(uuid,text,bigint,text,text) to authenticated;
 
 -- No public funding RPC exists. Seed demo balances only through trusted admin tooling.
+
+
+create or replace function public.admin_set_account_status(
+  p_account_id uuid,
+  p_status text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  v_account public.bank_accounts%rowtype;
+begin
+  if auth.uid() is null or not public.is_admin() then
+    raise exception 'Admin access required';
+  end if;
+  if p_status not in ('active','suspended') then
+    raise exception 'Unsupported account status';
+  end if;
+  update public.bank_accounts
+    set status=p_status,updated_at=now()
+    where id=p_account_id
+    returning * into v_account;
+  if not found then
+    raise exception 'Account not found';
+  end if;
+  insert into public.audit_logs(actor_user_id,action,target_id,metadata)
+    values(auth.uid(),'demo_account_status_changed',v_account.id,
+      jsonb_build_object('new_status',p_status,'account_number',v_account.account_number));
+  return jsonb_build_object('account_id',v_account.id,'status',v_account.status);
+end;
+$$;
+revoke all on function public.admin_set_account_status(uuid,text) from public;
+grant execute on function public.admin_set_account_status(uuid,text) to authenticated;
