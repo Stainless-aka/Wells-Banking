@@ -220,3 +220,24 @@ end;
 $$;
 revoke all on function public.admin_set_account_status(uuid,text) from public;
 grant execute on function public.admin_set_account_status(uuid,text) to authenticated;
+
+
+-- New signups receive an empty demo checking account automatically.
+-- It is not funded; balances can only be changed by trusted server/database workflows.
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path=public
+as $$
+begin
+  insert into public.profiles(id,full_name,email)
+  values(new.id,coalesce(new.raw_user_meta_data->>'full_name',''),coalesce(new.email,''))
+  on conflict(id) do update set email=excluded.email,
+    full_name=case when excluded.full_name<>'' then excluded.full_name else public.profiles.full_name end,
+    updated_at=now();
+  insert into public.user_roles(user_id,role) values(new.id,'customer') on conflict(user_id) do nothing;
+  if tg_op='INSERT' and not exists(select 1 from public.bank_accounts where user_id=new.id) then
+    insert into public.bank_accounts(user_id,account_number,account_type,currency,balance_minor,status)
+    values(new.id,'NS'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,10)),'Everyday Checking','NGN',0,'active');
+  end if;
+  return new;
+end;
+$$;
