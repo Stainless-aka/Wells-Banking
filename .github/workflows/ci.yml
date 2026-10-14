@@ -1,4 +1,4 @@
-name: Validate banking demo
+name: Validate Wells Banking application
 
 on:
   push:
