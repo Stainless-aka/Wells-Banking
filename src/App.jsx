@@ -1,111 +1,254 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { supabase, isSupabaseConfigured } from './lib/supabase'
+import { isSupabaseConfigured, supabase } from './lib/supabase'
 import './App.css'
 
-const demoAccounts = [
-  { id:'demo-checking', account_number:'•••• 4821', account_type:'Everyday Checking', currency:'NGN', balance_minor:28475000, status:'active' },
-  { id:'demo-savings', account_number:'•••• 9034', account_type:'Growth Savings', currency:'NGN', balance_minor:12500000, status:'active' },
-]
-const demoTransactions = [
-  { id:'d1', reference:'DEMO-10482', type:'deposit', status:'completed', amount_minor:2500000, created_at:'2026-10-12T09:20:00Z', description:'Demo salary deposit', direction:'credit' },
-  { id:'d2', reference:'DEMO-10481', type:'transfer', status:'completed', amount_minor:850000, created_at:'2026-10-11T14:10:00Z', description:'Transfer to Ada O.', direction:'debit' },
-  { id:'d3', reference:'DEMO-10480', type:'payment', status:'completed', amount_minor:129900, created_at:'2026-10-10T17:45:00Z', description:'Internet subscription', direction:'debit' },
-  { id:'d4', reference:'DEMO-10479', type:'transfer', status:'completed', amount_minor:320000, created_at:'2026-10-09T11:05:00Z', description:'Transfer received', direction:'credit' },
-]
-const money = (minor, currency='NGN') => new Intl.NumberFormat('en-NG',{style:'currency',currency,minimumFractionDigits:2}).format((Number(minor)||0)/100)
-const dateLabel = date => new Intl.DateTimeFormat('en-NG',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(date))
-function Icon({name}) {
-  const paths={home:'M3 10.5 12 3l9 7.5M5.5 9v11h13V9M9 20v-6h6v6',wallet:'M3 6.5A2.5 2.5 0 0 1 5.5 4H20v16H5.5A2.5 2.5 0 0 1 3 17.5zM3 8h17M16 13h4',transfer:'M7 7h13m-4-4 4 4-4 4M17 17H4m4-4-4 4 4 4',history:'M3 12a9 9 0 1 0 2.64-6.36L3 8m0-5v5h5m4-1v5l3 2',shield:'M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11zm-3-11 2 2 4-4',help:'M12 18h.01M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 5M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z',arrow:'M5 12h14m-6-6 6 6-6 6',eye:'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zm10-3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',menu:'M4 6h16M4 12h16M4 18h16',close:'M18 6 6 18M6 6l12 12',logout:'M10 17l5-5-5-5m5 5H3m9-9h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7',check:'m5 12 4 4L19 6'}
-  return <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={paths[name]||paths.home}/></svg>
+const money = (minor, currency = 'NGN') => {
+  if (minor === null || minor === undefined) return 'Not available'
+  return new Intl.NumberFormat('en-NG', { style: 'currency', currency, minimumFractionDigits: 2 }).format(Number(minor) / 100)
 }
-function Brand({onClick}) { return <button className="brand" onClick={onClick} aria-label="Northstar Demo Banking home"><span className="brand-mark">N</span><span className="brand-copy"><strong>northstar</strong><small>DEMO BANKING</small></span></button> }
-function Header({page,navigate,openAuth,user,signOut,isAdmin}) {
-  const [open,setOpen]=useState(false)
-  const links=[['Personal banking','home'],['Accounts','accounts'],['Transfers','transfers'],['Transactions','transactions'],['Help & support','support'],...(isAdmin?[['Admin','admin']]:[])]
-  return <><div className="utility"><div className="container utility-inner"><span>Portfolio project · Simulated funds only</span><span><Icon name="shield"/> Secure demo environment</span></div></div><header className="site-header"><div className="container header-inner"><Brand onClick={()=>navigate('home')}/><button className="mobile-menu" onClick={()=>setOpen(!open)} aria-label="Toggle navigation"><Icon name={open?'close':'menu'}/></button><nav className={open?'nav open':'nav'}>{links.map(([label,key])=><button key={key} className={page===key?'nav-link active':'nav-link'} onClick={()=>{navigate(key);setOpen(false)}}>{label}</button>)}{user?<button className="button red" onClick={()=>navigate('dashboard')}>Dashboard</button>:<button className="button red" onClick={()=>openAuth('signin')}>Sign in</button>}</nav>{user&&<button className="signout" onClick={signOut}><span className="avatar">{(user.email||'D')[0].toUpperCase()}</span> Sign out</button>}</div></header></>
+const dateLabel = value => value ? new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—'
+
+function Brand({ onClick }) {
+  return <button className="brand" onClick={onClick} aria-label="Wells Banking home"><span className="brand-mark">W</span><span className="brand-copy"><strong>Wells Banking</strong><small>ACCOUNT SERVICES</small></span></button>
 }
-function AuthModal({mode,setMode,close,onAuth,busy,error}) {
-  const [email,setEmail]=useState(''); const [password,setPassword]=useState(''); const [name,setName]=useState('')
-  return <div className="backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)close()}}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title"><button className="close-modal" onClick={close} aria-label="Close"><Icon name="close"/></button><span className="eyebrow">NORTHSTAR DEMO BANKING</span><h2 id="auth-title">{mode==='signup'?'Create your demo account':'Welcome back'}</h2><p className="muted">{isSupabaseConfigured?'Use your portfolio demo credentials.':'Authentication is not configured yet. Explore the demo without entering credentials.'}</p>{mode==='signup'&&<label>Full name<input value={name} onChange={e=>setName(e.target.value)} autoComplete="name" required/></label>}<label>Email address<input type="email" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" required/></label><label>Password<input type="password" value={password} onChange={e=>setPassword(e.target.value)} minLength="8" autoComplete={mode==='signup'?'new-password':'current-password'} required/></label>{error&&<p className="error" role="alert">{error}</p>}{isSupabaseConfigured?<button className="button red full" disabled={busy} onClick={()=>onAuth({mode,email,password,name})}>{busy?'Please wait…':mode==='signup'?'Create account':'Sign in securely'}</button>:<button className="button red full" onClick={close}>Continue in demo mode</button>}<p className="switch">{mode==='signup'?'Already registered?':'New to the demo?'} <button onClick={()=>setMode(mode==='signup'?'signin':'signup')}>{mode==='signup'?'Sign in':'Create an account'}</button></p><p className="fine">Demo only. Never enter your real bank password or financial details.</p></section></div>
-}
-function Home({navigate,openAuth}) {
-  const services=[['wallet','Account overview','See demo balances and account details in one clear dashboard.','accounts','Explore accounts'],['transfer','Easy transfers','Practise a transfer between demo accounts with validation.','transfers','Try a transfer'],['history','Transaction history','Review activity with clear dates, amounts and references.','transactions','View activity']]
-  return <main><section className="hero"><div className="container hero-grid"><div className="hero-copy"><span className="eyebrow"><i/> BANKING, MADE CLEARER</span><h1>Your money.<br/><em>Your next move.</em></h1><p>A simpler way to explore everyday banking. See your accounts, follow activity and practise transfers in a safe portfolio demo.</p><div className="hero-actions"><button className="button red" onClick={()=>openAuth('signup')}>Get started <Icon name="arrow"/></button><button className="button outline" onClick={()=>navigate('dashboard')}>Explore demo dashboard</button></div><div className="assurance"><span><Icon name="shield"/> Demo environment</span><span><Icon name="check"/> No real funds</span></div></div><div className="hero-art"><div className="orbit one"/><div className="orbit two"/><div className="bank-card"><div className="card-top"><span className="mini-mark">N</span><span>EVERYDAY CHECKING</span><span>•••</span></div><small>DEMO AVAILABLE BALANCE</small><strong>₦284,750.00</strong><div className="card-bottom"><span>DEMO CUSTOMER</span><span>•••• 4821</span></div><b>N</b></div><div className="float-note"><span><Icon name="check"/></span><div><strong>Transfer complete</strong><small>Simulated transaction</small></div></div><small className="art-caption">A clear view of your money, all in one place.</small></div></div></section><section className="trust"><div className="container trust-inner"><span><Icon name="shield"/> Built with security in mind</span><span><Icon name="wallet"/> Accounts at a glance</span><span><Icon name="history"/> Activity you can follow</span></div></section><section className="container section"><div className="section-heading"><div><span className="eyebrow">BANKING TOOLS</span><h2>Everyday banking, made simple.</h2></div><p>Explore the core tools in this interactive banking demo.</p></div><div className="services">{services.map(([icon,title,text,page,cta])=><article className="service" key={title}><span className="service-icon"><Icon name={icon}/></span><h3>{title}</h3><p>{text}</p><button className="text-link" onClick={()=>navigate(page)}>{cta} <Icon name="arrow"/></button></article>)}</div></section><section className="cta"><div className="container cta-inner"><div><span className="eyebrow">PORTFOLIO DEMO</span><h2>Take a closer look.</h2><p>Explore the dashboard using sample data. No registration required for demo mode.</p></div><button className="button light" onClick={()=>navigate('dashboard')}>Open demo dashboard <Icon name="arrow"/></button></div></section></main>
-}
-function Title({eyebrow,title,description,action}) { return <div className="page-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div>{action}</div> }
-function TransactionTable({transactions}) {
-  if(!transactions.length)return <div className="empty"><Icon name="history"/><strong>No transactions yet</strong><span>Your activity will appear here.</span></div>
-  return <div className="table-wrap"><table><thead><tr><th>Transaction</th><th>Reference</th><th>Date</th><th>Status</th><th className="right">Amount</th></tr></thead><tbody>{transactions.map(t=><tr key={t.id}><td><span className="txn"><i className={t.direction==='credit'?'credit':''}>{t.direction==='credit'?'↓':'↑'}</i><span><strong>{t.description||t.type||'Transaction'}</strong><small>{t.type||'Activity'}</small></span></span></td><td>{t.reference||String(t.id).slice(0,8)}</td><td>{dateLabel(t.created_at)}</td><td><span className="pill">{t.status||'completed'}</span></td><td className={'right amount '+(t.direction==='credit'?'positive':'')}>{t.direction==='credit'?'+':'−'}{money(t.amount_minor)}</td></tr>)}</tbody></table></div>
-}
-function Dashboard({accounts,transactions,navigate,user}) {
-  const [visible,setVisible]=useState(true)
-  const total=accounts.reduce((s,a)=>s+Number(a.balance_minor||0),0)
-  const hour=new Date().getHours(); const greeting=hour<12?'morning':hour<17?'afternoon':'evening'
-  const first=user?.user_metadata?.full_name? ', '+user.user_metadata.full_name.split(' ')[0]:''
-  return <main className="container app-page"><Title eyebrow="CUSTOMER OVERVIEW" title={'Good '+greeting+first+'.'} description="Here’s your demo banking snapshot." action={<button className="button outline" onClick={()=>setVisible(!visible)}><Icon name="eye"/>{visible?'Hide balances':'Show balances'}</button>}/><div className="demo-alert"><Icon name="shield"/><span><strong>Portfolio demo:</strong> all balances and activity are simulated. No real money moves.</span></div><div className="stats"><article className="balance-card"><span>Total demo balance</span><strong>{visible?money(total):'₦ ••••••'}</strong><small>Across {accounts.length} demo accounts</small><button onClick={()=>navigate('accounts')}>View account details <Icon name="arrow"/></button></article><article className="stat"><span className="service-icon"><Icon name="history"/></span><small>Transactions loaded</small><strong>{transactions.length}</strong><span className="muted">Demo activity</span></article><article className="stat"><span className="service-icon"><Icon name="wallet"/></span><small>Open accounts</small><strong>{accounts.filter(a=>a.status==='active').length}</strong><span className="muted">Demo accounts</span></article></div><div className="content-grid"><section className="panel"><div className="panel-heading"><div><h2>Your accounts</h2><p>Balances across your demo accounts</p></div><button className="text-link" onClick={()=>navigate('accounts')}>View all <Icon name="arrow"/></button></div>{accounts.map((a,i)=><div className="account-row" key={a.id}><span className={'account-icon c'+(i%2)}><Icon name="wallet"/></span><div className="account-info"><strong>{a.account_type}</strong><small>Account {a.account_number}</small></div><div className="account-balance"><strong>{visible?money(a.balance_minor,a.currency||'NGN'):'••••••'}</strong><span className="pill">{a.status}</span></div></div>)}</section><section className="panel"><div className="panel-heading"><div><h2>Quick actions</h2><p>What would you like to do?</p></div></div>{[['transfer','Make a transfer','Move demo funds between accounts','transfers'],['history','View transactions','Review recent account activity','transactions'],['help','Get help','Find demo and security information','support']].map(([icon,title,sub,key])=><button className="quick" key={key} onClick={()=>navigate(key)}><span className="service-icon"><Icon name={icon}/></span><span><strong>{title}</strong><small>{sub}</small></span><Icon name="arrow"/></button>)}</section></div><section className="panel"><div className="panel-heading"><div><h2>Recent activity</h2><p>Your latest demo transactions</p></div><button className="text-link" onClick={()=>navigate('transactions')}>Full history <Icon name="arrow"/></button></div><TransactionTable transactions={transactions.slice(0,4)}/></section></main>
-}
-function Accounts({accounts}) { return <main className="container app-page"><Title eyebrow="YOUR MONEY" title="Accounts" description="Review your demo accounts and their available balances."/><div className="demo-alert"><Icon name="shield"/> These are sample accounts for a portfolio demonstration.</div><div className="account-grid">{accounts.map((a,i)=><article className="panel detail-account" key={a.id}><span className={'account-icon c'+(i%2)}><Icon name="wallet"/></span><span className="eyebrow">{a.account_type}</span><strong>{money(a.balance_minor,a.currency||'NGN')}</strong><small>Account number: {a.account_number}</small><div className="account-detail-foot"><span className="pill">{a.status}</span><span>{a.currency||'NGN'} currency</span></div></article>)}</div></main> }
-function Transactions({transactions}) {
-  const [query,setQuery]=useState('')
-  const filtered=useMemo(()=>transactions.filter(t=>(String(t.description||'')+' '+String(t.reference||'')+' '+String(t.type||'')).toLowerCase().includes(query.toLowerCase())),[transactions,query])
-  return <main className="container app-page"><Title eyebrow="ACCOUNT ACTIVITY" title="Transactions" description="Search and review activity in your demo accounts."/><section className="panel"><div className="panel-heading"><div><h2>All transactions</h2><p>{filtered.length} transactions shown</p></div><input className="search" aria-label="Search transactions" placeholder="Search activity…" value={query} onChange={e=>setQuery(e.target.value)}/></div><TransactionTable transactions={filtered}/></section></main>
-}
-function Transfers({accounts,onTransfer,busy,notice}) {
-  const [from,setFrom]=useState(accounts[0]?.id||''); const [to,setTo]=useState(''); const [amount,setAmount]=useState(''); const [memo,setMemo]=useState(''); const [error,setError]=useState('')
-  const selectedFrom=accounts.some(a=>a.id===from)?from:(accounts[0]?.id||'')
-  const submit=async e=>{e.preventDefault();setError('');const minor=Math.round(Number(amount)*100);const source=accounts.find(a=>a.id===selectedFrom);if(!source)return setError('Choose a source account.');if(!to.trim())return setError('Enter a recipient demo account number.');if(!Number.isSafeInteger(minor)||minor<=0)return setError('Enter a valid amount greater than zero.');if(minor>Number(source.balance_minor))return setError('Insufficient demo funds.');if(!isSupabaseConfigured)return setError('Transfers need a configured Supabase project and seeded demo accounts.');const result=await onTransfer({fromId:from,recipient:to.trim(),amountMinor:minor,memo});if(result?.error)setError(result.error);else{setAmount('');setTo('');setMemo('')}}
-  return <main className="container app-page"><Title eyebrow="MOVE MONEY" title="Transfers" description="Send simulated funds between eligible demo accounts."/><div className="demo-alert"><Icon name="shield"/> Portfolio testing only. Never enter a real bank account number.</div><div className="transfer-layout"><form className="panel transfer-form" onSubmit={submit}><div className="panel-heading"><div><h2>Transfer details</h2><p>All fields required except the note.</p></div></div><label>From account<select value={selectedFrom} onChange={e=>setFrom(e.target.value)}>{accounts.map(a=><option key={a.id} value={a.id}>{a.account_type} · {a.account_number} · {money(a.balance_minor)}</option>)}</select></label><label>Recipient demo account number<input value={to} onChange={e=>setTo(e.target.value)} placeholder="Seeded demo account number" autoComplete="off"/></label><label>Amount (NGN)<div className="amount-input"><span>₦</span><input type="number" min="1" step="0.01" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="0.00" inputMode="decimal"/></div></label><label>Note (optional)<input value={memo} onChange={e=>setMemo(e.target.value)} maxLength="80" placeholder="What is this transfer for?"/></label>{error&&<p className="error" role="alert">{error}</p>}{notice&&<p className="success" role="status">{notice}</p>}<button className="button red full" disabled={busy}>{busy?'Processing…':'Submit demo transfer'} <Icon name="arrow"/></button><p className="fine">No real funds move. Database transfers require Supabase and seeded demo accounts.</p></form><aside className="panel transfer-help"><span className="service-icon"><Icon name="shield"/></span><h3>Before you transfer</h3><ul><li>Confirm the recipient is a demo account.</li><li>Stay within the available demo balance.</li><li>The database validates and records enabled transfers.</li></ul><div className="info-box"><small>Available demo balance</small><strong>{money(accounts.find(a=>a.id===selectedFrom)?.balance_minor||0)}</strong></div></aside></div></main>
-}
-function Admin() {
-  const [profiles,setProfiles]=useState([])
-  const [accounts,setAccounts]=useState([])
-  const [transactions,setTransactions]=useState([])
-  const [error,setError]=useState('')
-  const [loading,setLoading]=useState(true)
-  const [busyId,setBusyId]=useState('')
-  const load=useCallback(async()=>{
-    setLoading(true);setError('')
-    const [p,a,t]=await Promise.all([
-      supabase.from('profiles').select('id,full_name,email,created_at').order('created_at',{ascending:false}).limit(100),
-      supabase.from('bank_accounts').select('id,user_id,account_number,account_type,balance_minor,currency,status').order('created_at',{ascending:false}).limit(100),
-      supabase.from('transactions').select('id,reference,type,status,amount_minor,created_at').order('created_at',{ascending:false}).limit(100),
-    ])
-    const failure=p.error||a.error||t.error
-    if(failure)setError(failure.message)
-    else{setProfiles(p.data||[]);setAccounts(a.data||[]);setTransactions(t.data||[])}
-    setLoading(false)
-  },[])
-  useEffect(()=>{let active=true;Promise.resolve().then(()=>{if(active)load()});return()=>{active=false}},[load])
-  const toggle=async account=>{
-    setBusyId(account.id);setError('')
-    const {error:rpcError}=await supabase.rpc('admin_set_account_status',{p_account_id:account.id,p_status:account.status==='active'?'suspended':'active'})
-    if(rpcError)setError(rpcError.message)
-    else await load()
-    setBusyId('')
+
+function Icon({ name }) {
+  const paths = {
+    home: 'M3 10.5 12 3l9 7.5M5.5 9v11h13V9M9 20v-6h6v6',
+    wallet: 'M3 6.5A2.5 2.5 0 0 1 5.5 4H20v16H5.5A2.5 2.5 0 0 1 3 17.5zM3 8h17M16 13h4',
+    history: 'M3 12a9 9 0 1 0 2.64-6.36L3 8m0-5v5h5m4-1v5l3 2',
+    shield: 'M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11zm-3-11 2 2 4-4',
+    logout: 'M10 17l5-5-5-5m5 5H3m9-9h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7',
+    close: 'M18 6 6 18M6 6l12 12',
+    arrow: 'M5 12h14m-6-6 6 6-6 6',
+    lock: 'M5 10h14v11H5zM8 10V7a4 4 0 0 1 8 0v3',
   }
-  return <main className="container app-page"><Title eyebrow="RESTRICTED AREA" title="Administration" description="Review demo customers, accounts and transaction activity."/><div className="demo-alert"><Icon name="shield"/> Admin access is enforced by database policies. This panel is for synthetic portfolio data only.</div>{error&&<p className="error" role="alert">{error}</p>}<div className="stats"><article className="stat"><small>Customers loaded</small><strong>{profiles.length}</strong></article><article className="stat"><small>Demo accounts</small><strong>{accounts.length}</strong></article><article className="stat"><small>Transactions loaded</small><strong>{transactions.length}</strong></article></div><section className="panel"><div className="panel-heading"><div><h2>Customer accounts</h2><p>Review and suspend/reactivate demo accounts.</p></div><button className="button outline" onClick={load} disabled={loading}>Refresh</button></div>{loading?<p className="muted">Loading administration data…</p>:<div className="table-wrap"><table><thead><tr><th>Account</th><th>Owner</th><th>Balance</th><th>Status</th><th>Action</th></tr></thead><tbody>{accounts.map(a=>{const owner=profiles.find(p=>p.id===a.user_id);return <tr key={a.id}><td><strong>{a.account_type}</strong><br/><small>{a.account_number}</small></td><td>{owner?.full_name||owner?.email||'Demo customer'}</td><td>{money(a.balance_minor,a.currency||'NGN')}</td><td><span className="pill">{a.status}</span></td><td><button className="text-link" disabled={busyId===a.id||a.status==='closed'} onClick={()=>toggle(a)}>{busyId===a.id?'Saving…':a.status==='active'?'Suspend':'Reactivate'}</button></td></tr>})}</tbody></table></div>}</section><section className="panel"><div className="panel-heading"><div><h2>Recent transactions</h2><p>Latest transaction records.</p></div></div><TransactionTable transactions={transactions.map(t=>({...t,direction:'debit',description:t.type==='transfer'?'Account transfer':t.type}))}/></section></main>
+  return <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={paths[name] || paths.home} /></svg>
 }
-function Support({navigate}) {
-  const faqs=[['Is this a real bank?','No. This is an independent portfolio project inspired by common banking experiences. It is not affiliated with Wells Fargo or any financial institution.'],['Are balances real?','No. Balances and transactions in demo mode are sample data. No real money moves.'],['How do I enable authentication?','Create a Supabase project, apply the SQL migration, and configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'],['How are transfers protected?','The database function validates ownership, account status, available funds and duplicate requests inside a transaction.']]
-  return <main className="container app-page"><Title eyebrow="WE'RE HERE TO HELP" title="Help & support" description="Answers about this portfolio banking demo."/><div className="support-grid">{faqs.map(([q,a],i)=><article className="panel support-card" key={q}><span className="eyebrow">0{i+1}</span><h3>{q}</h3><p>{a}</p></article>)}</div><div className="support-cta"><div><h3>Ready to explore?</h3><p>Review sample account activity in the dashboard.</p></div><button className="button red" onClick={()=>navigate('dashboard')}>Open dashboard <Icon name="arrow"/></button></div></main>
+
+function AuthForm({ onAuthenticated }) {
+  const [mode, setMode] = useState('signin')
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  const submit = async event => {
+    event.preventDefault()
+    setBusy(true)
+    setError('')
+    setMessage('')
+    try {
+      if (!isSupabaseConfigured) throw new Error('Authentication is not configured. Add the Supabase project URL and publishable key to the environment before using this application.')
+      if (mode === 'signup') {
+        const { data, error: authError } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: { data: { full_name: fullName.trim() } },
+        })
+        if (authError) throw authError
+        if (data.session) onAuthenticated(data.session)
+        else setMessage('Registration received. Check your email to confirm your address, then sign in.')
+      } else if (mode === 'signin') {
+        const { data, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+        if (authError) throw authError
+        onAuthenticated(data.session)
+      } else {
+        const { error: authError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: window.location.origin,
+        })
+        if (authError) throw authError
+        setMessage('If an account exists for that email, a password reset link will be sent.')
+      }
+    } catch (err) {
+      setError(err.message || 'Authentication failed. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return <main className="auth-page"><section className="auth-modal auth-card">
+    <Brand onClick={() => setMode('signin')} />
+    <span className="eyebrow">SECURE CUSTOMER ACCESS</span>
+    <h1>{mode === 'signup' ? 'Create your account' : mode === 'reset' ? 'Reset your password' : 'Sign in to Wells Banking'}</h1>
+    <p className="muted">Your customer profile and records are stored in the connected database. No sample accounts or transactions are used.</p>
+    {!isSupabaseConfigured && <p className="error" role="alert">Supabase is not configured. Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to enable authentication.</p>}
+    <form onSubmit={submit} className="auth-fields">
+      {mode === 'signup' && <label>Full name<input value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" minLength="2" required /></label>}
+      <label>Email address<input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required /></label>
+      {mode !== 'reset' && <label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} minLength="8" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} required /></label>}
+      {error && <p className="error" role="alert">{error}</p>}
+      {message && <p className="success" role="status">{message}</p>}
+      <button className="button red full" disabled={busy || !isSupabaseConfigured}>{busy ? 'Please wait…' : mode === 'signup' ? 'Create account' : mode === 'reset' ? 'Send reset link' : 'Sign in securely'}</button>
+    </form>
+    <div className="auth-switch">
+      {mode === 'signin' && <><button onClick={() => { setMode('reset'); setError(''); setMessage('') }}>Forgot password?</button><span>New here? <button onClick={() => { setMode('signup'); setError(''); setMessage('') }}>Create an account</button></span></>}
+      {mode !== 'signin' && <button onClick={() => { setMode('signin'); setError(''); setMessage('') }}>Back to sign in</button>}
+    </div>
+    <p className="fine"><Icon name="shield" /> Never share your password or one-time codes with anyone.</p>
+  </section></main>
 }
-function Footer({navigate}) { return <footer className="footer"><div className="container footer-main"><div><Brand onClick={()=>navigate('home')}/><p>A banking portfolio demo for accessible interfaces and responsible transaction design.</p></div><div><strong>Explore</strong><button onClick={()=>navigate('accounts')}>Accounts</button><button onClick={()=>navigate('transfers')}>Transfers</button><button onClick={()=>navigate('transactions')}>Transactions</button></div><div><strong>Information</strong><button onClick={()=>navigate('support')}>Help & support</button><a href="https://github.com/Stainless-aka/Wells-Banking" target="_blank" rel="noreferrer">Source repository</a></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Northstar Demo Banking</span><span>Independent portfolio project · Not a real financial institution</span></div></footer> }
-function App() {
-  const [page,setPage]=useState('home'); const [authMode,setAuthMode]=useState(''); const [user,setUser]=useState(null); const [isAdmin,setIsAdmin]=useState(false); const [accounts,setAccounts]=useState(demoAccounts); const [transactions,setTransactions]=useState(demoTransactions); const [busy,setBusy]=useState(false); const [authError,setAuthError]=useState(''); const [notice,setNotice]=useState('')
-  const navigate=next=>{setPage(next);setNotice('');window.scrollTo({top:0,behavior:'smooth'})}
-  useEffect(()=>{if(!isSupabaseConfigured)return undefined;let alive=true;supabase.auth.getSession().then(({data})=>{if(alive)setUser(data.session?.user||null)});const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>setUser(session?.user||null));return()=>{alive=false;subscription.unsubscribe()}},[])
-  useEffect(()=>{if(!user||!isSupabaseConfigured){return}let cancelled=false;async function load(){const {data:roleData}=await supabase.from('user_roles').select('role').eq('user_id',user.id).maybeSingle();if(!cancelled)setIsAdmin(roleData?.role==='admin');const {data:aa}=await supabase.from('bank_accounts').select('id,account_number,account_type,currency,balance_minor,status').order('created_at');if(!cancelled&&aa)setAccounts(aa);const {data:tt}=await supabase.from('transactions').select('id,reference,type,status,amount_minor,created_at,from_account_id,to_account_id').order('created_at',{ascending:false}).limit(100);if(!cancelled&&tt){const ids=new Set((aa||[]).map(a=>a.id));setTransactions(tt.map(t=>({...t,direction:ids.has(t.to_account_id)?'credit':'debit',description:t.type==='transfer'?'Account transfer':t.type==='demo_funding'?'Demo funding':t.type})))}}load();return()=>{cancelled=true}},[user])
-  const handleAuth=async({mode,email,password,name})=>{setBusy(true);setAuthError('');try{if(mode==='signup'){const {data,error}=await supabase.auth.signUp({email,password,options:{data:{full_name:name}}});if(error)throw error;if(!data.session){setAuthError('Account created. Confirm your email, then sign in.');return}setUser(data.user);setAuthMode('');navigate('dashboard')}else{const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;setUser(data.user);setAuthMode('');navigate('dashboard')}}catch(error){setAuthError(error.message||'Authentication failed.')}finally{setBusy(false)}}
-  const signOut=async()=>{if(isSupabaseConfigured)await supabase.auth.signOut();setUser(null);setIsAdmin(false);setAccounts(demoAccounts);setTransactions(demoTransactions);navigate('home')}
-  const transfer=async({fromId,recipient,amountMinor,memo})=>{setBusy(true);setNotice('');try{const {data,error}=await supabase.rpc('transfer_demo_funds',{p_from_account:fromId,p_to_account_number:recipient,p_amount_minor:amountMinor,p_idempotency_key:crypto.randomUUID(),p_memo:memo||null});if(error)throw error;setNotice('Demo transfer recorded. Reference: '+(data.reference||'recorded'));const {data:aa}=await supabase.from('bank_accounts').select('id,account_number,account_type,currency,balance_minor,status').order('created_at');if(aa)setAccounts(aa);const {data:tt}=await supabase.from('transactions').select('id,reference,type,status,amount_minor,created_at,from_account_id,to_account_id').order('created_at',{ascending:false}).limit(100);if(tt){const ids=new Set((aa||[]).map(a=>a.id));setTransactions(tt.map(t=>({...t,direction:ids.has(t.to_account_id)?'credit':'debit',description:t.type==='transfer'?'Account transfer':t.type})));}return {}}catch(error){return {error:error.message||'Transfer failed.'}}finally{setBusy(false)}}
-  let content
-  if(page==='home')content=<Home navigate={navigate} openAuth={setAuthMode}/>
-  else if(page==='dashboard')content=<Dashboard accounts={accounts} transactions={transactions} navigate={navigate} user={user}/>
-  else if(page==='accounts')content=<Accounts accounts={accounts}/>
-  else if(page==='transactions')content=<Transactions transactions={transactions}/>
-  else if(page==='transfers')content=<Transfers accounts={accounts} onTransfer={transfer} busy={busy} notice={notice}/>
-  else if(page==='admin'&&isAdmin)content=<Admin/>
-  else content=<Support navigate={navigate}/>
-  return <div className="app-shell"><Header page={page} navigate={navigate} openAuth={setAuthMode} user={user} signOut={signOut} isAdmin={isAdmin}/>{content}<Footer navigate={navigate}/>{authMode&&<AuthModal mode={authMode} setMode={setAuthMode} close={()=>{setAuthMode('');setAuthError('')}} onAuth={handleAuth} busy={busy} error={authError}/>}</div>
+
+function Header({ page, setPage, user, signOut }) {
+  const links = [['overview', 'Overview'], ['accounts', 'Accounts'], ['transactions', 'Transactions']]
+  return <><div className="utility"><div className="container utility-inner"><span>Customer account services</span><span><Icon name="shield" /> Secure session</span></div></div><header className="site-header"><div className="container header-inner"><Brand onClick={() => setPage('overview')} /><nav className="nav">{links.map(([key, label]) => <button key={key} className={page === key ? 'nav-link active' : 'nav-link'} onClick={() => setPage(key)}>{label}</button>)}</nav><button className="signout" onClick={signOut}><span className="avatar">{(user.email || 'U')[0].toUpperCase()}</span><span>Sign out</span><Icon name="logout" /></button></div></header></>
 }
-export default App
+
+function Title({ eyebrow, title, description }) {
+  return <div className="page-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div></div>
+}
+
+function ProviderNotice() {
+  return <div className="demo-alert"><Icon name="lock" /><span><strong>Banking provider not connected.</strong> Account opening, balances, deposits, withdrawals and transfers remain unavailable until a licensed provider is integrated and configured.</span></div>
+}
+
+function EmptyState({ icon = 'wallet', title, text }) {
+  return <div className="empty"><Icon name={icon} /><strong>{title}</strong><span>{text}</span></div>
+}
+
+function TransactionTable({ transactions }) {
+  if (!transactions.length) return <EmptyState icon="history" title="No transaction records" text="Transactions will appear here only after they are received and verified from the connected provider." />
+  return <div className="table-wrap"><table><thead><tr><th>Description</th><th>Reference</th><th>Date</th><th>Status</th><th className="right">Amount</th></tr></thead><tbody>{transactions.map(tx => <tr key={tx.id}><td><span className="txn"><i className={tx.direction === 'credit' ? 'credit' : ''}>{tx.direction === 'credit' ? '↓' : '↑'}</i><span><strong>{tx.description || tx.type || 'Transaction'}</strong><small>{tx.type || 'Account activity'}</small></span></span></td><td>{tx.reference || tx.provider_transaction_id || '—'}</td><td>{dateLabel(tx.posted_at || tx.created_at)}</td><td><span className="pill">{tx.status}</span></td><td className={'right amount ' + (tx.direction === 'credit' ? 'positive' : '')}>{tx.direction === 'debit' ? '−' : tx.direction === 'credit' ? '+' : ''}{money(tx.amount_minor, tx.currency || 'NGN')}</td></tr>)}</tbody></table></div>
+}
+
+function Overview({ profile, customerAccount, accounts, transactions, setPage }) {
+  const knownBalances = accounts.filter(account => account.balance_minor !== null && account.balance_minor !== undefined)
+  const firstName = profile?.full_name?.trim().split(/\s+/)[0] || 'there'
+  return <main className="container app-page">
+    <Title eyebrow="CUSTOMER OVERVIEW" title={'Welcome, ' + firstName} description="Your account records and verified provider activity." />
+    <ProviderNotice />
+    <div className="stats">
+      <article className="balance-card"><span>Available balance</span><strong>{knownBalances.length ? money(knownBalances.reduce((sum, a) => sum + Number(a.balance_minor), 0), knownBalances[0].currency || 'NGN') : 'Not available'}</strong><small>{knownBalances.length ? 'Latest provider-reported balance' : 'Awaiting provider account connection'}</small></article>
+      <article className="stat"><span className="service-icon"><Icon name="wallet" /></span><small>Linked bank accounts</small><strong>{accounts.length}</strong><span className="muted">Provider-linked records only</span></article>
+      <article className="stat"><span className="service-icon"><Icon name="history" /></span><small>Transaction records</small><strong>{transactions.length}</strong><span className="muted">Provider-reported activity only</span></article>
+    </div>
+    <div className="content-grid">
+      <section className="panel"><div className="panel-heading"><div><h2>Customer record</h2><p>Your registered account details</p></div></div>
+        <div className="account-row"><span className="account-icon"><Icon name="shield" /></span><div className="account-info"><strong>{profile?.full_name || 'Name not provided'}</strong><small>{profile?.email || 'No email available'}</small></div><div className="account-balance"><span className="pill">{customerAccount?.status || 'pending setup'}</span></div></div>
+        <p className="fine">Customer record ID: {customerAccount?.id || 'Not provisioned'}</p>
+      </section>
+      <section className="panel"><div className="panel-heading"><div><h2>Available services</h2><p>Services currently enabled</p></div></div>
+        <button className="quick" onClick={() => setPage('accounts')}><span className="service-icon"><Icon name="wallet" /></span><span><strong>View accounts</strong><small>Review linked provider accounts</small></span><Icon name="arrow" /></button>
+        <button className="quick" onClick={() => setPage('transactions')}><span className="service-icon"><Icon name="history" /></span><span><strong>View transactions</strong><small>Review provider-sourced activity</small></span><Icon name="arrow" /></button>
+        <div className="info-box"><small>Money movement</small><strong>Disabled</strong><span className="fine">No transfer or payment request can be submitted by this app.</span></div>
+      </section>
+    </div>
+    <section className="panel"><div className="panel-heading"><div><h2>Recent transactions</h2><p>Verified records from your linked accounts</p></div><button className="text-link" onClick={() => setPage('transactions')}>View all <Icon name="arrow" /></button></div><TransactionTable transactions={transactions.slice(0, 5)} /></section>
+  </main>
+}
+
+function Accounts({ customerAccount, accounts }) {
+  return <main className="container app-page"><Title eyebrow="ACCOUNT SERVICES" title="Accounts" description="Your customer record and any accounts linked by a banking provider." /><ProviderNotice />
+    <section className="panel"><div className="panel-heading"><div><h2>Customer account record</h2><p>Application status, not a deposit account or stored-value balance</p></div></div>
+      <div className="account-row"><span className="account-icon"><Icon name="shield" /></span><div className="account-info"><strong>Wells Banking customer profile</strong><small>{customerAccount?.id || 'Customer record pending'}</small></div><div className="account-balance"><span className="pill">{customerAccount?.status || 'pending setup'}</span></div></div>
+    </section>
+    <section className="panel"><div className="panel-heading"><div><h2>Linked bank accounts</h2><p>Only provider-created account records are shown here</p></div></div>
+      {accounts.length ? <div className="account-grid">{accounts.map(account => <article className="panel detail-account" key={account.id}><span className="account-icon"><Icon name="wallet" /></span><span className="eyebrow">{account.account_type || 'Bank account'}</span><strong>{account.balance_minor == null ? 'Balance unavailable' : money(account.balance_minor, account.currency || 'NGN')}</strong><small>Account ending {account.account_number_masked || 'not supplied'}</small><small>Provider: {account.provider}</small><div className="account-detail-foot"><span className="pill">{account.status}</span><span>{account.balance_as_of ? 'Updated ' + dateLabel(account.balance_as_of) : 'No balance timestamp'}</span></div></article>)}</div> : <EmptyState title="No linked bank accounts" text="No account has been provisioned by a banking provider for this customer yet." />}
+    </section>
+  </main>
+}
+
+function Transactions({ transactions }) {
+  const [query, setQuery] = useState('')
+  const filtered = useMemo(() => transactions.filter(tx => [tx.description, tx.reference, tx.type, tx.status, tx.provider_transaction_id].filter(Boolean).join(' ').toLowerCase().includes(query.toLowerCase())), [transactions, query])
+  return <main className="container app-page"><Title eyebrow="ACCOUNT ACTIVITY" title="Transactions" description="Transaction records received from the connected banking provider." /><ProviderNotice />
+    <section className="panel"><div className="panel-heading"><div><h2>Transaction history</h2><p>{filtered.length} record{filtered.length === 1 ? '' : 's'}</p></div><input className="search" aria-label="Search transactions" placeholder="Search reference or description…" value={query} onChange={event => setQuery(event.target.value)} /></div><TransactionTable transactions={filtered} /></section>
+  </main>
+}
+
+export default function App() {
+  const [session, setSession] = useState(null)
+  const [page, setPage] = useState('overview')
+  const [profile, setProfile] = useState(null)
+  const [customerAccount, setCustomerAccount] = useState(null)
+  const [accounts, setAccounts] = useState([])
+  const [transactions, setTransactions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [dataError, setDataError] = useState('')
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setLoading(false)
+      return undefined
+    }
+    let mounted = true
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!mounted) return
+      if (error) setDataError(error.message)
+      setSession(data?.session || null)
+      setLoading(false)
+    })
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (mounted) {
+        setSession(nextSession)
+        setLoading(false)
+      }
+    })
+    return () => {
+      mounted = false
+      listener.subscription.unsubscribe()
+    }
+  }, [])
+
+  const loadCustomerData = useCallback(async () => {
+    if (!session?.user?.id || !supabase) {
+      setProfile(null)
+      setCustomerAccount(null)
+      setAccounts([])
+      setTransactions([])
+      return
+    }
+    setDataError('')
+    const userId = session.user.id
+    const [profileResult, customerResult, accountResult] = await Promise.all([
+      supabase.from('profiles').select('id,full_name,email,created_at').eq('id', userId).maybeSingle(),
+      supabase.from('customer_accounts').select('id,user_id,provider_customer_id,status,created_at,updated_at').eq('user_id', userId).maybeSingle(),
+      supabase.from('bank_accounts').select('id,user_id,provider,provider_account_id,account_number_masked,account_type,currency,balance_minor,balance_as_of,status,created_at').eq('user_id', userId).order('created_at', { ascending: false }),
+    ])
+    const failure = profileResult.error || customerResult.error || accountResult.error
+    if (failure) {
+      setDataError(failure.message)
+      return
+    }
+    setProfile(profileResult.data)
+    setCustomerAccount(customerResult.data)
+    setAccounts(accountResult.data || [])
+    if ((accountResult.data || []).length) {
+      const { data, error } = await supabase.from('transactions')
+        .select('id,bank_account_id,provider,provider_transaction_id,reference,type,status,direction,amount_minor,currency,description,posted_at,created_at')
+        .in('bank_account_id', accountResult.data.map(account => account.id))
+        .order('posted_at', { ascending: false, nullsFirst: false })
+        .limit(100)
+      if (error) setDataError(error.message)
+      setTransactions(data || [])
+    } else {
+      setTransactions([])
+    }
+  }, [session])
+
+  useEffect(() => {
+    if (!loading && session) loadCustomerData()
+  }, [loading, session, loadCustomerData])
+
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut()
+    if (error) setDataError(error.message)
+    else {
+      setProfile(null)
+      setCustomerAccount(null)
+      setAccounts([])
+      setTransactions([])
+    }
+  }
+
+  if (loading) return <main className="auth-page"><section className="auth-modal auth-card"><Brand onClick={() => {}} /><p>Loading secure session…</p></section></main>
+  if (!session) return <AuthForm onAuthenticated={setSession} />
+
+  return <div className="app-shell"><Header page={page} setPage={setPage} user={session.user} signOut={signOut} />
+    {dataError && <div className="container"><p className="error" role="alert">Unable to load account data: {dataError}. Refresh the page or contact support.</p></div>}
+    {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'transactions' ? <Transactions transactions={transactions} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={transactions} setPage={setPage} />}
+    <footer className="footer"><div className="container footer-bottom"><span>Wells Banking · Account services</span><span>Money movement is disabled pending licensed provider integration.</span></div></footer>
+  </div>
+}
