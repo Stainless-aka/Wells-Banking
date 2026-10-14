@@ -123,11 +123,6 @@ create policy "Customers read transactions for own provider accounts"
     )
   );
 
+revoke all on public.profiles, public.customer_accounts, public.bank_accounts, public.transactions from anon, authenticated;
 grant select on public.profiles, public.customer_accounts, public.bank_accounts, public.transactions to authenticated;
 grant update(full_name) on public.profiles to authenticated;
-
--- Explicitly revoke browser write access. Provider sync will be implemented behind
--- a trusted backend/webhook after a licensed provider has been selected.
-revoke insert, update, delete on public.customer_accounts from anon, authenticated;
-revoke insert, update, delete on public.bank_accounts from anon, authenticated;
-revoke insert, update, delete on public.transactions from anon, authenticated;
