@@ -92,8 +92,9 @@ function AuthForm({ onAuthenticated }) {
 }
 
 function Header({ page, setPage, user, signOut }) {
+  const [menuOpen, setMenuOpen] = useState(false)
   const links = [['overview', 'Overview'], ['accounts', 'Accounts'], ['transactions', 'Transactions']]
-  return <><div className="utility"><div className="container utility-inner"><span>Customer account services</span><span><Icon name="shield" /> Secure session</span></div></div><header className="site-header"><div className="container header-inner"><Brand onClick={() => setPage('overview')} /><nav className="nav">{links.map(([key, label]) => <button key={key} className={page === key ? 'nav-link active' : 'nav-link'} onClick={() => setPage(key)}>{label}</button>)}</nav><button className="signout" onClick={signOut}><span className="avatar">{(user.email || 'U')[0].toUpperCase()}</span><span>Sign out</span><Icon name="logout" /></button></div></header></>
+  return <><div className="utility"><div className="container utility-inner"><span>Customer account services</span><span><Icon name="shield" /> Secure session</span></div></div><header className="site-header"><div className="container header-inner"><Brand onClick={() => { setPage('overview'); setMenuOpen(false) }} /><button className="mobile-menu" onClick={() => setMenuOpen(open => !open)} aria-label="Toggle navigation"><span>{menuOpen ? 'Close' : 'Menu'}</span></button><nav className={menuOpen ? "nav open" : "nav"}>{links.map(([key, label]) => <button key={key} className={page === key ? 'nav-link active' : 'nav-link'} onClick={() => { setPage(key); setMenuOpen(false) }}>{label}</button>)}</nav><button className="signout" onClick={() => { setMenuOpen(false); signOut() }}><span className="avatar">{(user.email || 'U')[0].toUpperCase()}</span><span>Sign out</span><Icon name="logout" /></button></div></header></>
 }
 
 function Title({ eyebrow, title, description }) {
