@@ -37,7 +37,7 @@ npm run build
 ## Configure Supabase
 
 1. Create a Supabase project.
-2. Apply `supabase/migrations/202610140001_initial_schema.sql` through the Supabase CLI or SQL Editor.
+2. Apply both migrations in timestamp order: `202610140001_initial_schema.sql`, then `202610140002_remove_demo_schema.sql`. The Supabase CLI applies pending migrations in order; if using the SQL Editor, run each file in order.
 3. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` and in your deployment environment.
 4. Configure Auth email confirmation, password policy, SMTP/email delivery, redirect URLs, and rate limits for the intended environment.
 5. Register a test user using a real email address. The Auth trigger creates a `profiles` row and a `customer_accounts` row with `pending_provider` status. It does not create a bank account or balance.
