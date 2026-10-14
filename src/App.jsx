@@ -73,7 +73,6 @@ function AuthForm({ onAuthenticated }) {
     <Brand onClick={() => setMode('signin')} />
     <span className="eyebrow">SECURE CUSTOMER ACCESS</span>
     <h1>{mode === 'signup' ? 'Create your account' : mode === 'reset' ? 'Reset your password' : 'Sign in to Wells Banking'}</h1>
-    <p className="muted">Your customer profile and records are stored in the connected database. No sample accounts or transactions are used.</p>
     {!isSupabaseConfigured && <p className="error" role="alert">Supabase is not configured. Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to enable authentication.</p>}
     <form onSubmit={submit} className="auth-fields">
       {mode === 'signup' && <label>Full name<input value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" minLength="2" required /></label>}
