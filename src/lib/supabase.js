@@ -3,7 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 const url = import.meta.env.VITE_SUPABASE_URL
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-export const isSupabaseConfigured = Boolean(url && key)
+export const isSupabaseConfigured = Boolean(
+  url && key &&
+  !url.includes('YOUR_PROJECT_REF') &&
+  !key.includes('YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY')
+)
 export const supabase = isSupabaseConfigured
   ? createClient(url, key, {
       auth: {
