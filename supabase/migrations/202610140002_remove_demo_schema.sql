@@ -114,8 +114,6 @@ create policy "Customers read transactions for own provider accounts" on public.
   exists (select 1 from public.bank_accounts a where a.id = transactions.bank_account_id and a.user_id = (select auth.uid()))
 );
 
+revoke all on public.profiles, public.customer_accounts, public.bank_accounts, public.transactions from anon, authenticated;
 grant select on public.profiles, public.customer_accounts, public.bank_accounts, public.transactions to authenticated;
 grant update(full_name) on public.profiles to authenticated;
-revoke insert, update, delete on public.customer_accounts from anon, authenticated;
-revoke insert, update, delete on public.bank_accounts from anon, authenticated;
-revoke insert, update, delete on public.transactions from anon, authenticated;
