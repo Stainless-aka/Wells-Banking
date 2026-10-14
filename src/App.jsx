@@ -117,6 +117,7 @@ function TransactionTable({ transactions }) {
 function Overview({ profile, customerAccount, accounts, transactions, setPage }) {
   const knownBalances = accounts.filter(account => account.balance_minor !== null && account.balance_minor !== undefined)
   const firstName = profile?.full_name?.trim().split(/\s+/)[0] || 'there'
+  const currencies = [...new Set(knownBalances.map(account => account.currency || 'NGN'))]
   return <main className="container app-page">
     <Title eyebrow="CUSTOMER OVERVIEW" title={'Welcome, ' + firstName} description="Your account records and verified provider activity." />
     <ProviderNotice />
