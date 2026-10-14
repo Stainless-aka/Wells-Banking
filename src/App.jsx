@@ -160,6 +160,43 @@ function Transactions({ transactions }) {
   </main>
 }
 
+
+function PasswordRecovery({ onComplete }) {
+  const [password, setPassword] = useState('')
+  const [confirmation, setConfirmation] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+  const submit = async event => {
+    event.preventDefault()
+    setError('')
+    setMessage('')
+    if (password.length < 8) return setError('Use a password with at least 8 characters.')
+    if (password !== confirmation) return setError('The passwords do not match.')
+    setBusy(true)
+    const { error: updateError } = await supabase.auth.updateUser({ password })
+    setBusy(false)
+    if (updateError) setError(updateError.message)
+    else {
+      setMessage('Your password has been updated.')
+      onComplete()
+    }
+  }
+  return <main className="auth-page"><section className="auth-modal auth-card">
+    <Brand onClick={() => {}} />
+    <span className="eyebrow">ACCOUNT SECURITY</span>
+    <h1>Choose a new password</h1>
+    <p className="muted">Use a unique password you do not use for another account.</p>
+    <form className="auth-fields" onSubmit={submit}>
+      <label>New password<input type="password" minLength="8" autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} required /></label>
+      <label>Confirm new password<input type="password" minLength="8" autoComplete="new-password" value={confirmation} onChange={event => setConfirmation(event.target.value)} required /></label>
+      {error && <p className="error" role="alert">{error}</p>}
+      {message && <p className="success" role="status">{message}</p>}
+      <button className="button red full" disabled={busy}>{busy ? 'Updating…' : 'Update password'}</button>
+    </form>
+  </section></main>
+}
+
 export default function App() {
   const [session, setSession] = useState(null)
   const [page, setPage] = useState('overview')
@@ -167,14 +204,12 @@ export default function App() {
   const [customerAccount, setCustomerAccount] = useState(null)
   const [accounts, setAccounts] = useState([])
   const [transactions, setTransactions] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(isSupabaseConfigured)
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
   const [dataError, setDataError] = useState('')
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setLoading(false)
-      return undefined
-    }
+    if (!isSupabaseConfigured) return undefined
     let mounted = true
     supabase.auth.getSession().then(({ data, error }) => {
       if (!mounted) return
@@ -182,8 +217,9 @@ export default function App() {
       setSession(data?.session || null)
       setLoading(false)
     })
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (mounted) {
+        if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true)
         setSession(nextSession)
         setLoading(false)
       }
@@ -242,10 +278,12 @@ export default function App() {
       setCustomerAccount(null)
       setAccounts([])
       setTransactions([])
+      setPasswordRecovery(false)
     }
   }
 
   if (loading) return <main className="auth-page"><section className="auth-modal auth-card"><Brand onClick={() => {}} /><p>Loading secure session…</p></section></main>
+  if (passwordRecovery && session) return <PasswordRecovery onComplete={() => { setPasswordRecovery(false); setPage('overview') }} />
   if (!session) return <AuthForm onAuthenticated={setSession} />
 
   return <div className="app-shell"><Header page={page} setPage={setPage} user={session.user} signOut={signOut} />
