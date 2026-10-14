@@ -121,7 +121,7 @@ function Overview({ profile, customerAccount, accounts, transactions, setPage })
     <Title eyebrow="CUSTOMER OVERVIEW" title={'Welcome, ' + firstName} description="Your account records and verified provider activity." />
     <ProviderNotice />
     <div className="stats">
-      <article className="balance-card"><span>Available balance</span><strong>{knownBalances.length ? money(knownBalances.reduce((sum, a) => sum + Number(a.balance_minor), 0), knownBalances[0].currency || 'NGN') : 'Not available'}</strong><small>{knownBalances.length ? 'Latest provider-reported balance' : 'Awaiting provider account connection'}</small></article>
+      <article className="balance-card"><span>Available balance</span><strong>{knownBalances.length ? (currencies.length > 1 ? 'Multiple currencies' : money(knownBalances.reduce((sum, a) => sum + Number(a.balance_minor), 0), currencies[0])) : 'Not available'}</strong><small>{knownBalances.length ? 'Latest provider-reported balance' : 'Awaiting provider account connection'}</small></article>
       <article className="stat"><span className="service-icon"><Icon name="wallet" /></span><small>Linked bank accounts</small><strong>{accounts.length}</strong><span className="muted">Provider-linked records only</span></article>
       <article className="stat"><span className="service-icon"><Icon name="history" /></span><small>Transaction records</small><strong>{transactions.length}</strong><span className="muted">Provider-reported activity only</span></article>
     </div>
