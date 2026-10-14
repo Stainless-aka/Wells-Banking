@@ -75,7 +75,7 @@ function Admin() {
     else{setProfiles(p.data||[]);setAccounts(a.data||[]);setTransactions(t.data||[])}
     setLoading(false)
   },[])
-  useEffect(()=>{load()},[load])
+  useEffect(()=>{let active=true;Promise.resolve().then(()=>{if(active)load()});return()=>{active=false}},[load])
   const toggle=async account=>{
     setBusyId(account.id);setError('')
     const {error:rpcError}=await supabase.rpc('admin_set_account_status',{p_account_id:account.id,p_status:account.status==='active'?'suspended':'active'})
