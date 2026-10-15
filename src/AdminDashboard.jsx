@@ -34,12 +34,14 @@ export default function AdminDashboard({ user, onSignOut }) {
   const [settingsSaving, setSettingsSaving] = useState(false)
 
   const loadData = useCallback(async () => {
-    setLoading(true)
-    setError('')
-
     try {
       const { data: allowed, error: accessError } =
         await supabase.rpc('is_app_admin')
+
+      // Wait for the access check before updating React state. This avoids
+      // synchronous state updates from the effect that starts the initial load.
+      setLoading(true)
+      setError('')
 
       if (accessError) throw accessError
 
