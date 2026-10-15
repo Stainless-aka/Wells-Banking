@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
+import AdminDashboard from './AdminDashboard'
 import './App.css'
 
-const money = (minor, currency = 'NGN') => {
+const money = (minor, currency = 'USD') => {
   if (minor === null || minor === undefined) return 'Not available'
-  return new Intl.NumberFormat('en-NG', { style: 'currency', currency, minimumFractionDigits: 2 }).format(Number(minor) / 100)
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 2 }).format(Number(minor) / 100)
 }
 const dateLabel = value => value ? new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—'
 
 function Brand({ onClick }) {
-  return <button className="brand" onClick={onClick} aria-label="THEOS X DIGITAL TECH Customer Portal home"><span className="brand-mark">T</span><span className="brand-copy"><strong>THEOS X DIGITAL TECH</strong><small>ACCOUNT SERVICES</small></span></button>
+  return <button className="brand" onClick={onClick} aria-label="Wells Fargo Bank Customer Portal home"><span className="brand-mark">W</span><span className="brand-copy"><strong>Wells Fargo Bank</strong><small>ACCOUNT SERVICES</small></span></button>
 }
 
 function Icon({ name }) {
@@ -73,9 +74,8 @@ function AuthForm({ onAuthenticated }) {
   return <main className="auth-page"><section className="auth-modal auth-card">
     <Brand onClick={() => setMode('signin')} />
     <span className="eyebrow">CUSTOMER ACCOUNT PORTAL</span>
-    <h1>{mode === 'signup' ? 'Create your account' : mode === 'reset' ? 'Reset your password' : 'Sign in to THEOS X DIGITAL TECH Customer Portal'}</h1>
+    <h1>{mode === 'signup' ? 'Create your account' : mode === 'reset' ? 'Reset your password' : 'Sign in to Wells Fargo Bank'}</h1>
     {!isSupabaseConfigured && <p className="error" role="alert">Supabase is not configured. Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to enable authentication.</p>}
-    <p className="brand-disclaimer" role="note"><strong>Independent customer portal.</strong> This application is an independent portal operated by THEOS X DIGITAL TECH. Do not enter credentials for any external bank or financial institution. This portal does not provide real banking services.</p>
     <form onSubmit={submit} className="auth-fields">
       {mode === 'signup' && <label>Full name<input value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" minLength="2" required /></label>}
       <label>Email address<input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required /></label>
@@ -102,28 +102,23 @@ function Title({ eyebrow, title, description }) {
   return <div className="page-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div></div>
 }
 
-function ProviderNotice() {
-  return <div className="demo-alert"><Icon name="lock" /><span><strong>External banking provider not connected.</strong> Internal transfers between registered app accounts are available from Transfers. Deposits, withdrawals and transfers to real bank accounts require an authorized payment provider.</span></div>
-}
-
 function EmptyState({ icon = 'wallet', title, text }) {
   return <div className="empty"><Icon name={icon} /><strong>{title}</strong><span>{text}</span></div>
 }
 
 function TransactionTable({ transactions }) {
   if (!transactions.length) return <EmptyState icon="history" title="No transaction records" text="Transactions appear here after a completed internal transfer or when verified provider records are received." />
-  return <div className="table-wrap"><table><thead><tr><th>Description</th><th>Reference</th><th>Date</th><th>Status</th><th className="right">Amount</th></tr></thead><tbody>{transactions.map(tx => <tr key={tx.id}><td><span className="txn"><i className={tx.direction === 'credit' ? 'credit' : ''}>{tx.direction === 'credit' ? '↓' : '↑'}</i><span><strong>{tx.description || tx.type || 'Transaction'}</strong><small>{tx.type || 'Account activity'}</small></span></span></td><td>{tx.reference || tx.provider_transaction_id || '—'}</td><td>{dateLabel(tx.posted_at || tx.created_at)}</td><td><span className="pill">{tx.status}</span></td><td className={'right amount ' + (tx.direction === 'credit' ? 'positive' : '')}>{tx.direction === 'debit' ? '−' : tx.direction === 'credit' ? '+' : ''}{money(tx.amount_minor, tx.currency || 'NGN')}</td></tr>)}</tbody></table></div>
+  return <div className="table-wrap"><table><thead><tr><th>Description</th><th>Reference</th><th>Date</th><th>Status</th><th className="right">Amount</th></tr></thead><tbody>{transactions.map(tx => <tr key={tx.id}><td><span className="txn"><i className={tx.direction === 'credit' ? 'credit' : ''}>{tx.direction === 'credit' ? '↓' : '↑'}</i><span><strong>{tx.description || tx.type || 'Transaction'}</strong><small>{tx.type || 'Account activity'}</small></span></span></td><td>{tx.reference || tx.provider_transaction_id || '—'}</td><td>{dateLabel(tx.posted_at || tx.created_at)}</td><td><span className="pill">{tx.status}</span></td><td className={'right amount ' + (tx.direction === 'credit' ? 'positive' : '')}>{tx.direction === 'debit' ? '−' : tx.direction === 'credit' ? '+' : ''}{money(tx.amount_minor, tx.currency || 'USD')}</td></tr>)}</tbody></table></div>
 }
 
 function Overview({ profile, customerAccount, accounts, transactions, setPage }) {
   const knownBalances = accounts.filter(account => account.balance_minor !== null && account.balance_minor !== undefined)
   const firstName = profile?.full_name?.trim().split(/\s+/)[0] || 'there'
-  const currencies = [...new Set(knownBalances.map(account => account.currency || 'NGN'))]
+  const currencies = [...new Set(knownBalances.map(account => account.currency || 'USD'))]
   return <main className="container app-page">
     <Title eyebrow="CUSTOMER OVERVIEW" title={'Welcome, ' + firstName} description="Your customer records and internal application activity." />
-    <ProviderNotice />
     <div className="stats">
-      <article className="balance-card"><span>Available balance</span><strong>{knownBalances.length ? (currencies.length > 1 ? 'Multiple currencies' : money(knownBalances.reduce((sum, a) => sum + Number(a.balance_minor), 0), currencies[0])) : 'Not available'}</strong><small>{knownBalances.length ? 'Latest provider-reported balance' : 'Awaiting provider account connection'}</small></article>
+      <article className="balance-card"><span>Available balance</span><strong>{knownBalances.length ? (currencies.length > 1 ? 'Multiple currencies' : money(knownBalances.reduce((sum, a) => sum + Number(a.balance_minor), 0), currencies[0])) : '$0.00'}</strong><small>{knownBalances.length ? 'Latest provider-reported balance' : 'Displayed default balance'}</small></article>
       <article className="stat"><span className="service-icon"><Icon name="wallet" /></span><small>Linked bank accounts</small><strong>{accounts.length}</strong><span className="muted">Provider-linked records only</span></article>
       <article className="stat"><span className="service-icon"><Icon name="history" /></span><small>Transaction records</small><strong>{transactions.length}</strong><span className="muted">Provider-reported activity only</span></article>
     </div>
@@ -135,7 +130,6 @@ function Overview({ profile, customerAccount, accounts, transactions, setPage })
       <section className="panel"><div className="panel-heading"><div><h2>Available services</h2><p>Services currently enabled</p></div></div>
         <button className="quick" onClick={() => setPage('accounts')}><span className="service-icon"><Icon name="wallet" /></span><span><strong>View accounts</strong><small>Review linked provider accounts</small></span><Icon name="arrow" /></button>
         <button className="quick" onClick={() => setPage('transactions')}><span className="service-icon"><Icon name="history" /></span><span><strong>View transactions</strong><small>Review provider-sourced activity</small></span><Icon name="arrow" /></button>
-        <div className="info-box"><small>Money movement</small><strong>Disabled</strong><span className="fine">No transfer or payment request can be submitted by this app.</span></div>
       </section>
     </div>
     <section className="panel"><div className="panel-heading"><div><h2>Recent transactions</h2><p>Internal ledger and provider records</p></div><button className="text-link" onClick={() => setPage('transactions')}>View all <Icon name="arrow" /></button></div><TransactionTable transactions={transactions.slice(0, 5)} /></section>
@@ -143,12 +137,12 @@ function Overview({ profile, customerAccount, accounts, transactions, setPage })
 }
 
 function Accounts({ customerAccount, accounts }) {
-  return <main className="container app-page"><Title eyebrow="ACCOUNT SERVICES" title="Accounts" description="Your customer record and any accounts linked by a banking provider." /><ProviderNotice />
+  return <main className="container app-page"><Title eyebrow="ACCOUNT SERVICES" title="Accounts" description="Your customer record and any accounts linked by a banking provider." />
     <section className="panel"><div className="panel-heading"><div><h2>Customer account record</h2><p>Application status, not a deposit account or stored-value balance</p></div></div>
-      <div className="account-row"><span className="account-icon"><Icon name="shield" /></span><div className="account-info"><strong>THEOS X DIGITAL TECH Customer Portal customer profile</strong><small>{customerAccount?.id || 'Customer record pending'}</small></div><div className="account-balance"><span className="pill">{customerAccount?.status || 'pending setup'}</span></div></div>
+      <div className="account-row"><span className="account-icon"><Icon name="shield" /></span><div className="account-info"><strong>Wells Fargo Bank prototype customer profile</strong><small>{customerAccount?.id || 'Customer record pending'}</small></div><div className="account-balance"><span className="pill">{customerAccount?.status || 'pending setup'}</span></div></div>
     </section>
     <section className="panel"><div className="panel-heading"><div><h2>Linked bank accounts</h2><p>Only provider-created account records are shown here</p></div></div>
-      {accounts.length ? <div className="account-grid">{accounts.map(account => <article className="panel detail-account" key={account.id}><span className="account-icon"><Icon name="wallet" /></span><span className="eyebrow">{account.account_type || 'Bank account'}</span><strong>{account.balance_minor == null ? 'Balance unavailable' : money(account.balance_minor, account.currency || 'NGN')}</strong><small>Account ending {account.account_number_masked || 'not supplied'}</small><small>Provider: {account.provider}</small><div className="account-detail-foot"><span className="pill">{account.status}</span><span>{account.balance_as_of ? 'Updated ' + dateLabel(account.balance_as_of) : 'No balance timestamp'}</span></div></article>)}</div> : <EmptyState title="No linked bank accounts" text="No account has been provisioned by a banking provider for this customer yet." />}
+      {accounts.length ? <div className="account-grid">{accounts.map(account => <article className="panel detail-account" key={account.id}><span className="account-icon"><Icon name="wallet" /></span><span className="eyebrow">{account.account_type || 'Bank account'}</span><strong>{account.balance_minor == null ? 'Balance unavailable' : money(account.balance_minor, account.currency || 'USD')}</strong><small>Account ending {account.account_number_masked || 'not supplied'}</small><small>Provider: {account.provider}</small><div className="account-detail-foot"><span className="pill">{account.status}</span><span>{account.balance_as_of ? 'Updated ' + dateLabel(account.balance_as_of) : 'No balance timestamp'}</span></div></article>)}</div> : <EmptyState title="No linked bank accounts" text="No account has been provisioned by a banking provider for this customer yet." />}
     </section>
   </main>
 }
@@ -156,7 +150,7 @@ function Accounts({ customerAccount, accounts }) {
 function Transactions({ transactions }) {
   const [query, setQuery] = useState('')
   const filtered = useMemo(() => transactions.filter(tx => [tx.description, tx.reference, tx.type, tx.status, tx.provider_transaction_id].filter(Boolean).join(' ').toLowerCase().includes(query.toLowerCase())), [transactions, query])
-  return <main className="container app-page"><Title eyebrow="ACCOUNT ACTIVITY" title="Transactions" description="Internal app transfers and any verified records received from a connected provider." /><ProviderNotice />
+  return <main className="container app-page"><Title eyebrow="ACCOUNT ACTIVITY" title="Transactions" description="Internal app transfers and any verified records received from a connected provider." />
     <section className="panel"><div className="panel-heading"><div><h2>Transaction history</h2><p>{filtered.length} record{filtered.length === 1 ? '' : 's'}</p></div><input className="search" aria-label="Search transactions" placeholder="Search reference or description…" value={query} onChange={event => setQuery(event.target.value)} /></div><TransactionTable transactions={filtered} /></section>
   </main>
 }
@@ -209,22 +203,21 @@ function Transfers({ wallet, onTransferComplete, onRefresh, refreshing }) {
 
   return <main className="container app-page">
     <Title eyebrow="INTERNAL TRANSFERS" title="Transfer funds" description="Send funds to another registered account in this application." />
-    <div className="demo-alert"><Icon name="lock" /><span><strong>Application-only transfers.</strong> These transactions are recorded in this app's Supabase ledger. They do not move money through Wells Fargo or any external bank. Wallets begin with a zero balance; deposits are not enabled.</span></div>
     <div className="stats">
-      <article className="balance-card"><span>Available app balance</span><strong>{wallet ? money(wallet.balance_minor, wallet.currency || 'NGN') : 'Loading…'}</strong><small>Calculated from completed internal ledger entries</small></article>
+      <article className="balance-card"><span>Available app balance</span><strong>{wallet ? money(wallet.balance_minor, wallet.currency || 'USD') : 'Loading…'}</strong><small>Calculated from completed internal ledger entries</small></article>
       <article className="stat"><span className="service-icon"><Icon name="wallet" /></span><small>Internal account number</small><strong className="account-number">{wallet?.account_number || 'Preparing account'}</strong><span className="muted">Not a bank account number</span></article>
     </div>
     <section className="panel transfer-panel">
       <div className="panel-heading"><div><h2>New internal transfer</h2><p>Recipient must have registered in this application</p></div></div>
       <form className="auth-fields transfer-fields" onSubmit={submit}>
         <label>Recipient email<input type="email" value={recipient} onChange={e => setRecipient(e.target.value)} autoComplete="off" required placeholder="recipient@example.com" /></label>
-        <label>Amount (NGN)<input type="number" min="0.01" step="0.01" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} required placeholder="0.00" /></label>
+        <label>Amount (USD)<input type="number" min="0.01" step="0.01" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} required placeholder="0.00" /></label>
         <label>Description (optional)<input value={description} onChange={e => setDescription(e.target.value)} maxLength="120" placeholder="What is this transfer for?" /></label>
         {error && <p className="error" role="alert">{error}</p>}
         {message && <p className="success" role="status">{message}</p>}
         <button className="button red" disabled={busy || !wallet || wallet.status !== 'active'}>{busy ? 'Processing transfer…' : 'Transfer funds'}</button>
       </form>
-      <p className="fine">The database checks account status and available balance and records both the debit and credit in one atomic operation. Insufficient funds or an unknown recipient will fail without posting a transfer.</p>
+      
     </section>
     <section className="panel"><div className="panel-heading"><div><h2>Recent activity</h2><p>Internal transfers saved to Supabase</p></div><button className="text-link" onClick={onRefresh} disabled={refreshing}><Icon name="refresh" /> Refresh</button></div><p className="muted">Your completed internal transfers also appear in Transaction history.</p></section>
   </main>
@@ -378,12 +371,15 @@ export default function App() {
   if (loading) return <main className="auth-page"><section className="auth-modal auth-card"><Brand onClick={() => {}} /><p>Loading secure session…</p></section></main>
   if (passwordRecovery && session) return <PasswordRecovery onComplete={() => { setPasswordRecovery(false); setPage('overview') }} />
   if (!session) return <AuthForm onAuthenticated={setSession} />
+  if (window.location.pathname.replace(/\/+$/, '') === '/admin') {
+    return <AdminDashboard user={session.user} onSignOut={signOut} />
+  }
 
   const allTransactions = [...internalTransactions, ...transactions].sort((a, b) => new Date(b.posted_at || b.created_at || 0) - new Date(a.posted_at || a.created_at || 0))
 
   return <div className="app-shell"><Header page={page} setPage={setPage} user={session.user} signOut={signOut} onRefresh={loadCustomerData} refreshing={dataLoading} />
     {dataError && <div className="container"><p className="error" role="alert">Unable to load account data: {dataError}. Use Refresh data to retry, or contact support if the problem continues.</p></div>}
     {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'transactions' ? <Transactions transactions={allTransactions} /> : page === 'transfers' ? <Transfers wallet={wallet} onTransferComplete={loadCustomerData} onRefresh={loadCustomerData} refreshing={dataLoading} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={allTransactions} setPage={setPage} />}
-    <footer className="footer"><div className="container footer-bottom"><span>THEOS X DIGITAL TECH Customer Portal · Account services</span><span>Independent customer portal. No real deposit accounts or money movement are provided.</span></div></footer>
+    <footer className="footer"><div className="container footer-bottom"><span>Wells Fargo Bank</span></div></footer>
   </div>
 }

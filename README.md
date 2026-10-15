@@ -1,6 +1,6 @@
-# THEOS X DIGITAL TECH Customer Portal
+# Wells Fargo Bank — Unofficial Banking Prototype
 
-An independent account portal built with React, Vite, JavaScript, Supabase Auth, and PostgreSQL. It includes an application-only internal ledger for transfers between registered users. It is not a bank and does not access Wells Fargo or other external bank accounts.
+An unofficial Wells Fargo Bank-themed banking prototype built with React, Vite, JavaScript, Supabase Auth, and PostgreSQL. It includes an application-only internal ledger for transfers between registered users. It is not a bank and does not access Wells Fargo or other external bank accounts.
 
 ## Current scope
 
@@ -67,4 +67,4 @@ Deploy the frontend to Vercel and set the two public Supabase environment variab
 
 ## Brand and regulatory note
 
-This is an independent application operated under THEOS X DIGITAL TECH. It is not affiliated with, endorsed by, or operated by Wells Fargo or another financial institution. Do not collect credentials for another financial institution or present this app as an official Wells Fargo service. Use only branding and services you are authorized to represent. This codebase does not make the operator a bank or authorize deposit-taking or money transmission.
+This is an unofficial prototype using Wells Fargo Bank branding for demonstration purposes. It is not affiliated with, endorsed by, or operated by Wells Fargo or another financial institution. Do not collect credentials for another financial institution or present this app as an official Wells Fargo service. Use only branding and services you are authorized to represent. This codebase does not make the operator a bank or authorize deposit-taking or money transmission.
