@@ -9,7 +9,7 @@ const money = (minor, currency = 'NGN') => {
 const dateLabel = value => value ? new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—'
 
 function Brand({ onClick }) {
-  return <button className="brand" onClick={onClick} aria-label="Wells Banking home"><span className="brand-mark">W</span><span className="brand-copy"><strong>Wells Banking</strong><small>ACCOUNT SERVICES</small></span></button>
+  return <button className="brand" onClick={onClick} aria-label="Wells Fargo Bank prototype home"><span className="brand-mark">W</span><span className="brand-copy"><strong>Wells Fargo Bank</strong><small>ACCOUNT SERVICES</small></span></button>
 }
 
 function Icon({ name }) {
@@ -71,9 +71,10 @@ function AuthForm({ onAuthenticated }) {
 
   return <main className="auth-page"><section className="auth-modal auth-card">
     <Brand onClick={() => setMode('signin')} />
-    <span className="eyebrow">SECURE CUSTOMER ACCESS</span>
-    <h1>{mode === 'signup' ? 'Create your account' : mode === 'reset' ? 'Reset your password' : 'Sign in to Wells Banking'}</h1>
+    <span className="eyebrow">INDEPENDENT PROTOTYPE</span>
+    <h1>{mode === 'signup' ? 'Create your account' : mode === 'reset' ? 'Reset your password' : 'Sign in to Wells Fargo Bank prototype'}</h1>
     {!isSupabaseConfigured && <p className="error" role="alert">Supabase is not configured. Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to enable authentication.</p>}
+    <p className="brand-disclaimer" role="note"><strong>Unofficial prototype.</strong> This application is not affiliated with or endorsed by Wells Fargo Bank. Do not enter Wells Fargo banking credentials or use this prototype for real banking.</p>
     <form onSubmit={submit} className="auth-fields">
       {mode === 'signup' && <label>Full name<input value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" minLength="2" required /></label>}
       <label>Email address<input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required /></label>
@@ -143,7 +144,7 @@ function Overview({ profile, customerAccount, accounts, transactions, setPage })
 function Accounts({ customerAccount, accounts }) {
   return <main className="container app-page"><Title eyebrow="ACCOUNT SERVICES" title="Accounts" description="Your customer record and any accounts linked by a banking provider." /><ProviderNotice />
     <section className="panel"><div className="panel-heading"><div><h2>Customer account record</h2><p>Application status, not a deposit account or stored-value balance</p></div></div>
-      <div className="account-row"><span className="account-icon"><Icon name="shield" /></span><div className="account-info"><strong>Wells Banking customer profile</strong><small>{customerAccount?.id || 'Customer record pending'}</small></div><div className="account-balance"><span className="pill">{customerAccount?.status || 'pending setup'}</span></div></div>
+      <div className="account-row"><span className="account-icon"><Icon name="shield" /></span><div className="account-info"><strong>Wells Fargo Bank prototype customer profile</strong><small>{customerAccount?.id || 'Customer record pending'}</small></div><div className="account-balance"><span className="pill">{customerAccount?.status || 'pending setup'}</span></div></div>
     </section>
     <section className="panel"><div className="panel-heading"><div><h2>Linked bank accounts</h2><p>Only provider-created account records are shown here</p></div></div>
       {accounts.length ? <div className="account-grid">{accounts.map(account => <article className="panel detail-account" key={account.id}><span className="account-icon"><Icon name="wallet" /></span><span className="eyebrow">{account.account_type || 'Bank account'}</span><strong>{account.balance_minor == null ? 'Balance unavailable' : money(account.balance_minor, account.currency || 'NGN')}</strong><small>Account ending {account.account_number_masked || 'not supplied'}</small><small>Provider: {account.provider}</small><div className="account-detail-foot"><span className="pill">{account.status}</span><span>{account.balance_as_of ? 'Updated ' + dateLabel(account.balance_as_of) : 'No balance timestamp'}</span></div></article>)}</div> : <EmptyState title="No linked bank accounts" text="No account has been provisioned by a banking provider for this customer yet." />}
@@ -288,6 +289,6 @@ export default function App() {
   return <div className="app-shell"><Header page={page} setPage={setPage} user={session.user} signOut={signOut} />
     {dataError && <div className="container"><p className="error" role="alert">Unable to load account data: {dataError}. Refresh the page or contact support.</p></div>}
     {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'transactions' ? <Transactions transactions={transactions} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={transactions} setPage={setPage} />}
-    <footer className="footer"><div className="container footer-bottom"><span>Wells Banking · Account services</span><span>Money movement is disabled pending licensed provider integration.</span></div></footer>
+    <footer className="footer"><div className="container footer-bottom"><span>Wells Fargo Bank prototype · Account services</span><span>Unofficial demo; not affiliated with Wells Fargo. Money movement is disabled.</span></div></footer>
   </div>
 }
