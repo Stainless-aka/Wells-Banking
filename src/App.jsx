@@ -94,7 +94,7 @@ function AuthForm({ onAuthenticated }) {
 
 function Header({ page, setPage, user, signOut, onRefresh, refreshing }) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const links = [['overview', 'Overview'], ['accounts', 'Accounts'], ['transactions', 'Transactions']]
+  const links = [['overview', 'Overview'], ['accounts', 'Accounts'], ['transactions', 'Transactions'], ['transfers', 'Transfers']]
   return <><div className="utility"><div className="container utility-inner"><span>Customer account services</span><span><Icon name="shield" /> Secure session</span></div></div><header className="site-header"><div className="container header-inner"><Brand onClick={() => { setPage('overview'); setMenuOpen(false) }} /><button className="mobile-menu" onClick={() => setMenuOpen(open => !open)} aria-label="Toggle navigation"><span>{menuOpen ? 'Close' : 'Menu'}</span></button><nav className={menuOpen ? "nav open" : "nav"}>{links.map(([key, label]) => <button key={key} className={page === key ? 'nav-link active' : 'nav-link'} onClick={() => { setPage(key); setMenuOpen(false) }}>{label}</button>)}</nav><button className="text-link refresh-action" onClick={onRefresh} disabled={refreshing} aria-label="Refresh customer records"><Icon name="refresh" />{refreshing ? 'Refreshing…' : 'Refresh data'}</button><button className="signout" onClick={() => { setMenuOpen(false); signOut() }}><span className="avatar">{(user.email || 'U')[0].toUpperCase()}</span><span>Sign out</span><Icon name="logout" /></button></div></header></>
 }
 
@@ -162,6 +162,74 @@ function Transactions({ transactions }) {
 }
 
 
+
+function Transfers({ wallet, onTransferComplete, onRefresh, refreshing }) {
+  const [recipient, setRecipient] = useState('')
+  const [amount, setAmount] = useState('')
+  const [description, setDescription] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+
+  const submit = async event => {
+    event.preventDefault()
+    setError('')
+    setMessage('')
+    const numericAmount = Number(amount)
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      setError('Enter an amount greater than zero.')
+      return
+    }
+    const amountMinor = Math.round(numericAmount * 100)
+    if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) {
+      setError('Enter a valid amount with no more than two decimal places.')
+      return
+    }
+    setBusy(true)
+    try {
+      const { data, error: transferError } = await supabase.rpc('transfer_internal', {
+        p_recipient_email: recipient.trim(),
+        p_amount_minor: amountMinor,
+        p_description: description.trim() || 'Internal transfer',
+        p_idempotency_key: crypto.randomUUID(),
+      })
+      if (transferError) throw transferError
+      const result = Array.isArray(data) ? data[0] : data
+      setMessage('Internal transfer completed. Reference: ' + (result?.reference || 'recorded'))
+      setRecipient('')
+      setAmount('')
+      setDescription('')
+      await onTransferComplete()
+    } catch (err) {
+      setError(err?.message || 'Transfer could not be completed.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return <main className="container app-page">
+    <Title eyebrow="INTERNAL TRANSFERS" title="Transfer funds" description="Send funds to another registered account in this application." />
+    <div className="demo-alert"><Icon name="lock" /><span><strong>Application-only transfers.</strong> These transactions are recorded in this app's Supabase ledger. They do not move money through Wells Fargo or any external bank. Wallets begin with a zero balance; deposits are not enabled.</span></div>
+    <div className="stats">
+      <article className="balance-card"><span>Available app balance</span><strong>{wallet ? money(wallet.balance_minor, wallet.currency || 'NGN') : 'Loading…'}</strong><small>Calculated from completed internal ledger entries</small></article>
+      <article className="stat"><span className="service-icon"><Icon name="wallet" /></span><small>Internal account number</small><strong className="account-number">{wallet?.account_number || 'Preparing account'}</strong><span className="muted">Not a bank account number</span></article>
+    </div>
+    <section className="panel transfer-panel">
+      <div className="panel-heading"><div><h2>New internal transfer</h2><p>Recipient must have registered in this application</p></div></div>
+      <form className="auth-fields transfer-fields" onSubmit={submit}>
+        <label>Recipient email<input type="email" value={recipient} onChange={e => setRecipient(e.target.value)} autoComplete="off" required placeholder="recipient@example.com" /></label>
+        <label>Amount (NGN)<input type="number" min="0.01" step="0.01" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} required placeholder="0.00" /></label>
+        <label>Description (optional)<input value={description} onChange={e => setDescription(e.target.value)} maxLength="120" placeholder="What is this transfer for?" /></label>
+        {error && <p className="error" role="alert">{error}</p>}
+        {message && <p className="success" role="status">{message}</p>}
+        <button className="button red" disabled={busy || !wallet || wallet.status !== 'active'}>{busy ? 'Processing transfer…' : 'Transfer funds'}</button>
+      </form>
+      <p className="fine">The database checks account status and available balance and records both the debit and credit in one atomic operation. Insufficient funds or an unknown recipient will fail without posting a transfer.</p>
+    </section>
+    <section className="panel"><div className="panel-heading"><div><h2>Recent activity</h2><p>Internal transfers saved to Supabase</p></div><button className="text-link" onClick={onRefresh} disabled={refreshing}><Icon name="refresh" /> Refresh</button></div><p className="muted">Your completed internal transfers also appear in Transaction history.</p></section>
+  </main>
+}
+
 function PasswordRecovery({ onComplete }) {
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
@@ -205,6 +273,8 @@ export default function App() {
   const [customerAccount, setCustomerAccount] = useState(null)
   const [accounts, setAccounts] = useState([])
   const [transactions, setTransactions] = useState([])
+  const [wallet, setWallet] = useState(null)
+  const [internalTransactions, setInternalTransactions] = useState([])
   const [loading, setLoading] = useState(isSupabaseConfigured)
   const [passwordRecovery, setPasswordRecovery] = useState(false)
   const [dataError, setDataError] = useState('')
@@ -238,6 +308,8 @@ export default function App() {
       setCustomerAccount(null)
       setAccounts([])
       setTransactions([])
+      setWallet(null)
+      setInternalTransactions([])
       setDataLoading(false)
       return
     }
@@ -259,17 +331,25 @@ export default function App() {
       const accountRows = accountResult.data || []
       setAccounts(accountRows)
 
-      if (accountRows.length) {
-        const { data, error } = await supabase.from('transactions')
-          .select('id,bank_account_id,provider,provider_transaction_id,reference,type,status,direction,amount_minor,currency,description,posted_at,created_at')
-          .in('bank_account_id', accountRows.map(account => account.id))
-          .order('posted_at', { ascending: false, nullsFirst: false })
-          .limit(100)
-        if (error) throw error
-        setTransactions(data || [])
-      } else {
-        setTransactions([])
-      }
+      const [providerTransactionsResult, walletResult, internalTransactionsResult] = await Promise.all([
+        accountRows.length
+          ? supabase.from('transactions').select('id,bank_account_id,provider,provider_transaction_id,reference,type,status,direction,amount_minor,currency,description,posted_at,created_at').in('bank_account_id', accountRows.map(account => account.id)).order('posted_at', { ascending: false, nullsFirst: false }).limit(100)
+          : Promise.resolve({ data: [], error: null }),
+        supabase.rpc('get_my_internal_wallet'),
+        supabase.from('internal_transactions').select('id,transfer_id,user_id,counterparty_user_id,reference,direction,amount_minor,currency,description,status,created_at').order('created_at', { ascending: false }).limit(100),
+      ])
+      const transactionFailure = providerTransactionsResult.error || walletResult.error || internalTransactionsResult.error
+      if (transactionFailure) throw transactionFailure
+      setTransactions(providerTransactionsResult.data || [])
+      const walletRow = Array.isArray(walletResult.data) ? walletResult.data[0] : walletResult.data
+      setWallet(walletRow || null)
+      setInternalTransactions((internalTransactionsResult.data || []).map(tx => ({
+        ...tx,
+        provider: 'internal',
+        provider_transaction_id: tx.transfer_id,
+        type: 'Internal transfer',
+        posted_at: tx.created_at,
+      })))
     } catch (error) {
       setDataError(error?.message || 'Unable to load customer records. Please retry.')
     } finally {
@@ -289,6 +369,8 @@ export default function App() {
       setCustomerAccount(null)
       setAccounts([])
       setTransactions([])
+      setWallet(null)
+      setInternalTransactions([])
       setPasswordRecovery(false)
     }
   }
@@ -297,9 +379,11 @@ export default function App() {
   if (passwordRecovery && session) return <PasswordRecovery onComplete={() => { setPasswordRecovery(false); setPage('overview') }} />
   if (!session) return <AuthForm onAuthenticated={setSession} />
 
+  const allTransactions = [...internalTransactions, ...transactions].sort((a, b) => new Date(b.posted_at || b.created_at || 0) - new Date(a.posted_at || a.created_at || 0))
+
   return <div className="app-shell"><Header page={page} setPage={setPage} user={session.user} signOut={signOut} onRefresh={loadCustomerData} refreshing={dataLoading} />
     {dataError && <div className="container"><p className="error" role="alert">Unable to load account data: {dataError}. Use Refresh data to retry, or contact support if the problem continues.</p></div>}
-    {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'transactions' ? <Transactions transactions={transactions} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={transactions} setPage={setPage} />}
+    {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'transactions' ? <Transactions transactions={allTransactions} /> : page === 'transfers' ? <Transfers wallet={wallet} onTransferComplete={loadCustomerData} onRefresh={loadCustomerData} refreshing={dataLoading} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={allTransactions} setPage={setPage} />}
     <footer className="footer"><div className="container footer-bottom"><span>THEOS X DIGITAL TECH Customer Portal · Account services</span><span>Independent customer portal. No real deposit accounts or money movement are provided.</span></div></footer>
   </div>
 }
