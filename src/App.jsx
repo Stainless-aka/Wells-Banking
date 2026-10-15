@@ -75,7 +75,7 @@ function AuthForm({ onAuthenticated }) {
     <span className="eyebrow">INDEPENDENT PROTOTYPE</span>
     <h1>{mode === 'signup' ? 'Create your account' : mode === 'reset' ? 'Reset your password' : 'Sign in to THEOS X DIGITAL TECH Customer Portal'}</h1>
     {!isSupabaseConfigured && <p className="error" role="alert">Supabase is not configured. Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to enable authentication.</p>}
-    <p className="brand-disclaimer" role="note"><strong>Unofficial prototype.</strong> This application is an independent portal operated by THEOS X DIGITAL TECH. Do not enter Wells Fargo banking credentials or use this prototype for real banking.</p>
+    <p className="brand-disclaimer" role="note"><strong>Unofficial prototype.</strong> This application is an independent portal operated by THEOS X DIGITAL TECH. Do not enter credentials for any external bank or financial institution. This portal does not provide real banking services.</p>
     <form onSubmit={submit} className="auth-fields">
       {mode === 'signup' && <label>Full name<input value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" minLength="2" required /></label>}
       <label>Email address<input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required /></label>
@@ -300,6 +300,6 @@ export default function App() {
   return <div className="app-shell"><Header page={page} setPage={setPage} user={session.user} signOut={signOut} onRefresh={loadCustomerData} refreshing={dataLoading} />
     {dataError && <div className="container"><p className="error" role="alert">Unable to load account data: {dataError}. Use Refresh data to retry, or contact support if the problem continues.</p></div>}
     {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'transactions' ? <Transactions transactions={transactions} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={transactions} setPage={setPage} />}
-    <footer className="footer"><div className="container footer-bottom"><span>THEOS X DIGITAL TECH Customer Portal · Account services</span><span>Unofficial demo; not affiliated with Wells Fargo. Money movement is disabled.</span></div></footer>
+    <footer className="footer"><div className="container footer-bottom"><span>THEOS X DIGITAL TECH Customer Portal · Account services</span><span>Independent customer portal. No real deposit accounts or money movement are provided.</span></div></footer>
   </div>
 }
