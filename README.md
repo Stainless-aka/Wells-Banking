@@ -1,6 +1,6 @@
-# Wells Banking
+# Wells Fargo Bank Prototype
 
-A minimal customer account application built with React, Vite, JavaScript, Supabase Auth, and PostgreSQL. This repository provides production-oriented authentication and private, database-backed customer records. It does **not** pretend to be a licensed bank or move money.
+An independent prototype using React, Vite, JavaScript, Supabase Auth, and PostgreSQL to test authentication and private customer records. It is **not affiliated with, endorsed by, or operated by Wells Fargo Bank**. Do not use real Wells Fargo credentials. It does not provide banking services or move money.
 
 ## Current scope
 
@@ -63,4 +63,4 @@ Deploy the frontend to Vercel and set the two public Supabase environment variab
 
 ## Brand and regulatory note
 
-This repository name is Wells Banking, but the application must not imply affiliation with Wells Fargo or another financial institution. Use only branding and services you are authorized to represent. This codebase alone does not make the operator a bank or authorize deposit-taking or money transmission.
+This is an independent, unofficial prototype. It is not affiliated with, endorsed by, or operated by Wells Fargo Bank. The name is used only to identify the requested prototype; this project must not be presented as an official Wells Fargo service or collect Wells Fargo credentials. Use only branding and services you are authorized to represent. This codebase does not make the operator a bank or authorize deposit-taking or money transmission.
