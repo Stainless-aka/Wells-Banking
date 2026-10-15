@@ -17,3 +17,5 @@
 .mobile-menu{border:1px solid var(--line);border-radius:5px;padding:8px 10px;background:white;color:var(--ink);font-size:11px;font-weight:700}
 @media(min-width:761px){.mobile-menu{display:none}}
 @media(max-width:760px){.header-inner{gap:12px}.nav{z-index:10}.signout{font-size:0;gap:0}.signout .avatar{font-size:11px}.signout svg{display:none}.nav.open{display:flex}.auth-card{padding:28px 22px}}
+
+.brand-disclaimer{margin:0 0 18px;padding:12px 14px;border:1px solid #e7c9a0;border-radius:6px;background:#fff8ed;color:#684d2a;font-size:11px;line-height:1.65}.brand-disclaimer strong{display:block;margin-bottom:3px}
