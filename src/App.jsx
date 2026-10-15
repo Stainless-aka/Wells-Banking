@@ -103,7 +103,7 @@ function Title({ eyebrow, title, description }) {
 }
 
 function ProviderNotice() {
-  return <div className="demo-alert"><Icon name="lock" /><span><strong>Banking provider not connected.</strong> Account opening, balances, deposits, withdrawals and transfers remain unavailable until a licensed provider is integrated and configured.</span></div>
+  return <div className="demo-alert"><Icon name="lock" /><span><strong>External banking provider not connected.</strong> Internal transfers between registered app accounts are available from Transfers. Deposits, withdrawals and transfers to real bank accounts require an authorized payment provider.</span></div>
 }
 
 function EmptyState({ icon = 'wallet', title, text }) {
@@ -111,7 +111,7 @@ function EmptyState({ icon = 'wallet', title, text }) {
 }
 
 function TransactionTable({ transactions }) {
-  if (!transactions.length) return <EmptyState icon="history" title="No transaction records" text="Transactions will appear here only after they are received and verified from the connected provider." />
+  if (!transactions.length) return <EmptyState icon="history" title="No transaction records" text="Transactions appear here after a completed internal transfer or when verified provider records are received." />
   return <div className="table-wrap"><table><thead><tr><th>Description</th><th>Reference</th><th>Date</th><th>Status</th><th className="right">Amount</th></tr></thead><tbody>{transactions.map(tx => <tr key={tx.id}><td><span className="txn"><i className={tx.direction === 'credit' ? 'credit' : ''}>{tx.direction === 'credit' ? '↓' : '↑'}</i><span><strong>{tx.description || tx.type || 'Transaction'}</strong><small>{tx.type || 'Account activity'}</small></span></span></td><td>{tx.reference || tx.provider_transaction_id || '—'}</td><td>{dateLabel(tx.posted_at || tx.created_at)}</td><td><span className="pill">{tx.status}</span></td><td className={'right amount ' + (tx.direction === 'credit' ? 'positive' : '')}>{tx.direction === 'debit' ? '−' : tx.direction === 'credit' ? '+' : ''}{money(tx.amount_minor, tx.currency || 'NGN')}</td></tr>)}</tbody></table></div>
 }
 
@@ -120,7 +120,7 @@ function Overview({ profile, customerAccount, accounts, transactions, setPage })
   const firstName = profile?.full_name?.trim().split(/\s+/)[0] || 'there'
   const currencies = [...new Set(knownBalances.map(account => account.currency || 'NGN'))]
   return <main className="container app-page">
-    <Title eyebrow="CUSTOMER OVERVIEW" title={'Welcome, ' + firstName} description="Your account records and verified provider activity." />
+    <Title eyebrow="CUSTOMER OVERVIEW" title={'Welcome, ' + firstName} description="Your customer records and internal application activity." />
     <ProviderNotice />
     <div className="stats">
       <article className="balance-card"><span>Available balance</span><strong>{knownBalances.length ? (currencies.length > 1 ? 'Multiple currencies' : money(knownBalances.reduce((sum, a) => sum + Number(a.balance_minor), 0), currencies[0])) : 'Not available'}</strong><small>{knownBalances.length ? 'Latest provider-reported balance' : 'Awaiting provider account connection'}</small></article>
@@ -138,7 +138,7 @@ function Overview({ profile, customerAccount, accounts, transactions, setPage })
         <div className="info-box"><small>Money movement</small><strong>Disabled</strong><span className="fine">No transfer or payment request can be submitted by this app.</span></div>
       </section>
     </div>
-    <section className="panel"><div className="panel-heading"><div><h2>Recent transactions</h2><p>Verified records from your linked accounts</p></div><button className="text-link" onClick={() => setPage('transactions')}>View all <Icon name="arrow" /></button></div><TransactionTable transactions={transactions.slice(0, 5)} /></section>
+    <section className="panel"><div className="panel-heading"><div><h2>Recent transactions</h2><p>Internal ledger and provider records</p></div><button className="text-link" onClick={() => setPage('transactions')}>View all <Icon name="arrow" /></button></div><TransactionTable transactions={transactions.slice(0, 5)} /></section>
   </main>
 }
 
@@ -156,7 +156,7 @@ function Accounts({ customerAccount, accounts }) {
 function Transactions({ transactions }) {
   const [query, setQuery] = useState('')
   const filtered = useMemo(() => transactions.filter(tx => [tx.description, tx.reference, tx.type, tx.status, tx.provider_transaction_id].filter(Boolean).join(' ').toLowerCase().includes(query.toLowerCase())), [transactions, query])
-  return <main className="container app-page"><Title eyebrow="ACCOUNT ACTIVITY" title="Transactions" description="Transaction records received from the connected banking provider." /><ProviderNotice />
+  return <main className="container app-page"><Title eyebrow="ACCOUNT ACTIVITY" title="Transactions" description="Internal app transfers and any verified records received from a connected provider." /><ProviderNotice />
     <section className="panel"><div className="panel-heading"><div><h2>Transaction history</h2><p>{filtered.length} record{filtered.length === 1 ? '' : 's'}</p></div><input className="search" aria-label="Search transactions" placeholder="Search reference or description…" value={query} onChange={event => setQuery(event.target.value)} /></div><TransactionTable transactions={filtered} /></section>
   </main>
 }
