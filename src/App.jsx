@@ -278,7 +278,7 @@ export default function App() {
   }, [session])
 
   useEffect(() => {
-    if (!loading && session) loadCustomerData()
+    if (!loading && session) Promise.resolve().then(loadCustomerData)
   }, [loading, session, loadCustomerData])
 
   const signOut = async () => {
