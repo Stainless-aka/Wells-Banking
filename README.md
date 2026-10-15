@@ -1,6 +1,6 @@
 # THEOS X DIGITAL TECH Customer Portal
 
-An independent prototype using React, Vite, JavaScript, Supabase Auth, and PostgreSQL to test authentication and private customer records. It is an independent customer portal operated under THEOS X DIGITAL TECH. It does not provide deposit accounts, financial services, or money movement.
+An independent customer portal built with React, Vite, JavaScript, Supabase Auth, and PostgreSQL for authentication and private customer records. It is an independent customer portal operated under THEOS X DIGITAL TECH. It does not provide deposit accounts, financial services, or money movement.
 
 ## Current scope
 
@@ -9,7 +9,7 @@ An independent prototype using React, Vite, JavaScript, Supabase Auth, and Postg
 - A customer profile and customer-account record created in PostgreSQL when a user registers.
 - Row Level Security so authenticated customers can read only their own records.
 - Provider-linked bank-account and transaction tables for records later synchronized from a licensed provider.
-- No sample data, seed balances, generated bank account numbers, mock transactions, offline demo mode, transfer UI, or transfer RPC.
+- No sample data, seed balances, generated bank account numbers, mock transactions, offline simulation mode, transfer UI, or transfer RPC.
 - Money movement is deliberately disabled until a licensed banking/payment provider has been selected, contractually enabled, and integrated server-side.
 
 ## Stack
