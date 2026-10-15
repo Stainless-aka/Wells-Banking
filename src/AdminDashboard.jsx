@@ -30,6 +30,8 @@ export default function AdminDashboard({ user, onSignOut }) {
   const [saving, setSaving] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [notificationSettings, setNotificationSettings] = useState({ mode: 'support', category: 'VAT' })
+  const [settingsSaving, setSettingsSaving] = useState(false)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -69,6 +71,12 @@ export default function AdminDashboard({ user, onSignOut }) {
           .select('id,user_id,counterparty_user_id,reference,direction,amount_minor,currency,description,status,created_at')
           .order('created_at', { ascending: false })
           .limit(100),
+
+        supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'transfer_notification')
+          .maybeSingle(),
       ])
 
       const failure = results.find(result => result.error)
@@ -79,6 +87,16 @@ export default function AdminDashboard({ user, onSignOut }) {
         accounts: results[1].data || [],
         wallets: results[2].data || [],
         transactions: results[3].data || [],
+      })
+
+      const savedNotification = results[4].data?.value || {}
+      setNotificationSettings({
+        mode: ['support', 'review', 'normal'].includes(savedNotification.mode)
+          ? savedNotification.mode
+          : 'support',
+        category: ['VAT', 'COT', 'IRS'].includes(savedNotification.category)
+          ? savedNotification.category
+          : 'VAT',
       })
     } catch (err) {
       setError(err.message || 'Unable to load admin data.')
@@ -127,6 +145,32 @@ export default function AdminDashboard({ user, onSignOut }) {
       setError(err.message || 'Unable to update status.')
     } finally {
       setSaving('')
+    }
+  }
+
+  const saveNotificationSettings = async () => {
+    setSettingsSaving(true)
+    setError('')
+    setMessage('')
+
+    try {
+      const { error: saveError } = await supabase
+        .from('app_settings')
+        .upsert({
+          key: 'transfer_notification',
+          value: notificationSettings,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id,
+        }, { onConflict: 'key' })
+
+      if (saveError) throw saveError
+
+      setMessage('Transfer notification settings saved.')
+      await loadData()
+    } catch (err) {
+      setError(err.message || 'Unable to save notification settings.')
+    } finally {
+      setSettingsSaving(false)
     }
   }
 
@@ -260,6 +304,57 @@ export default function AdminDashboard({ user, onSignOut }) {
             </tbody>
           </table>
         </div>}
+    </section>
+
+    <section className="panel">
+      <div className="panel-heading">
+        <div>
+          <h2>Transfer notification settings</h2>
+          <p>Choose the notice shown after a customer submits a beneficiary request.</p>
+        </div>
+      </div>
+
+      <div className="auth-fields">
+        <label>
+          Notification mode
+          <select
+            value={notificationSettings.mode}
+            onChange={event => setNotificationSettings(current => ({
+              ...current,
+              mode: event.target.value,
+            }))}
+          >
+            <option value="support">Support notice</option>
+            <option value="review">Under review</option>
+            <option value="normal">Normal simulated request</option>
+          </select>
+        </label>
+
+        {notificationSettings.mode === 'support' && (
+          <label>
+            Support enquiry category
+            <select
+              value={notificationSettings.category}
+              onChange={event => setNotificationSettings(current => ({
+                ...current,
+                category: event.target.value,
+              }))}
+            >
+              <option value="VAT">VAT</option>
+              <option value="COT">COT</option>
+              <option value="IRS">IRS</option>
+            </select>
+          </label>
+        )}
+
+        <button
+          className="button red"
+          onClick={saveNotificationSettings}
+          disabled={settingsSaving}
+        >
+          {settingsSaving ? 'Saving…' : 'Save notification settings'}
+        </button>
+      </div>
     </section>
 
     <section className="panel">
