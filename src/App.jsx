@@ -9,7 +9,7 @@ const money = (minor, currency = 'NGN') => {
 const dateLabel = value => value ? new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—'
 
 function Brand({ onClick }) {
-  return <button className="brand" onClick={onClick} aria-label="THEOS X DIGITAL TECH Customer Portal home"><span className="brand-mark">W</span><span className="brand-copy"><strong>THEOS X DIGITAL TECH</strong><small>ACCOUNT SERVICES</small></span></button>
+  return <button className="brand" onClick={onClick} aria-label="THEOS X DIGITAL TECH Customer Portal home"><span className="brand-mark">T</span><span className="brand-copy"><strong>THEOS X DIGITAL TECH</strong><small>ACCOUNT SERVICES</small></span></button>
 }
 
 function Icon({ name }) {
@@ -72,10 +72,10 @@ function AuthForm({ onAuthenticated }) {
 
   return <main className="auth-page"><section className="auth-modal auth-card">
     <Brand onClick={() => setMode('signin')} />
-    <span className="eyebrow">INDEPENDENT PROTOTYPE</span>
+    <span className="eyebrow">CUSTOMER ACCOUNT PORTAL</span>
     <h1>{mode === 'signup' ? 'Create your account' : mode === 'reset' ? 'Reset your password' : 'Sign in to THEOS X DIGITAL TECH Customer Portal'}</h1>
     {!isSupabaseConfigured && <p className="error" role="alert">Supabase is not configured. Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to enable authentication.</p>}
-    <p className="brand-disclaimer" role="note"><strong>Unofficial prototype.</strong> This application is an independent portal operated by THEOS X DIGITAL TECH. Do not enter credentials for any external bank or financial institution. This portal does not provide real banking services.</p>
+    <p className="brand-disclaimer" role="note"><strong>Independent customer portal.</strong> This application is an independent portal operated by THEOS X DIGITAL TECH. Do not enter credentials for any external bank or financial institution. This portal does not provide real banking services.</p>
     <form onSubmit={submit} className="auth-fields">
       {mode === 'signup' && <label>Full name<input value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" minLength="2" required /></label>}
       <label>Email address<input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required /></label>
