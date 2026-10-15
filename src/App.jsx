@@ -9,7 +9,7 @@ const money = (minor, currency = 'NGN') => {
 const dateLabel = value => value ? new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—'
 
 function Brand({ onClick }) {
-  return <button className="brand" onClick={onClick} aria-label="Wells Fargo Bank prototype home"><span className="brand-mark">W</span><span className="brand-copy"><strong>Wells Fargo Bank</strong><small>ACCOUNT SERVICES</small></span></button>
+  return <button className="brand" onClick={onClick} aria-label="THEOS X DIGITAL TECH Customer Portal home"><span className="brand-mark">T</span><span className="brand-copy"><strong>THEOS X DIGITAL TECH</strong><small>ACCOUNT SERVICES</small></span></button>
 }
 
 function Icon({ name }) {
@@ -22,6 +22,7 @@ function Icon({ name }) {
     close: 'M18 6 6 18M6 6l12 12',
     arrow: 'M5 12h14m-6-6 6 6-6 6',
     lock: 'M5 10h14v11H5zM8 10V7a4 4 0 0 1 8 0v3',
+    refresh: 'M20 7v5h-5M4 17v-5h5M5.6 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.4-3',
   }
   return <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={paths[name] || paths.home} /></svg>
 }
@@ -71,10 +72,10 @@ function AuthForm({ onAuthenticated }) {
 
   return <main className="auth-page"><section className="auth-modal auth-card">
     <Brand onClick={() => setMode('signin')} />
-    <span className="eyebrow">INDEPENDENT PROTOTYPE</span>
-    <h1>{mode === 'signup' ? 'Create your account' : mode === 'reset' ? 'Reset your password' : 'Sign in to Wells Fargo Bank prototype'}</h1>
+    <span className="eyebrow">CUSTOMER ACCOUNT PORTAL</span>
+    <h1>{mode === 'signup' ? 'Create your account' : mode === 'reset' ? 'Reset your password' : 'Sign in to THEOS X DIGITAL TECH Customer Portal'}</h1>
     {!isSupabaseConfigured && <p className="error" role="alert">Supabase is not configured. Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to enable authentication.</p>}
-    <p className="brand-disclaimer" role="note"><strong>Unofficial prototype.</strong> This application is not affiliated with or endorsed by Wells Fargo Bank. Do not enter Wells Fargo banking credentials or use this prototype for real banking.</p>
+    <p className="brand-disclaimer" role="note"><strong>Independent customer portal.</strong> This application is an independent portal operated by THEOS X DIGITAL TECH. Do not enter credentials for any external bank or financial institution. This portal does not provide real banking services.</p>
     <form onSubmit={submit} className="auth-fields">
       {mode === 'signup' && <label>Full name<input value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" minLength="2" required /></label>}
       <label>Email address<input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required /></label>
@@ -91,10 +92,10 @@ function AuthForm({ onAuthenticated }) {
   </section></main>
 }
 
-function Header({ page, setPage, user, signOut }) {
+function Header({ page, setPage, user, signOut, onRefresh, refreshing }) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const links = [['overview', 'Overview'], ['accounts', 'Accounts'], ['transactions', 'Transactions']]
-  return <><div className="utility"><div className="container utility-inner"><span>Customer account services</span><span><Icon name="shield" /> Secure session</span></div></div><header className="site-header"><div className="container header-inner"><Brand onClick={() => { setPage('overview'); setMenuOpen(false) }} /><button className="mobile-menu" onClick={() => setMenuOpen(open => !open)} aria-label="Toggle navigation"><span>{menuOpen ? 'Close' : 'Menu'}</span></button><nav className={menuOpen ? "nav open" : "nav"}>{links.map(([key, label]) => <button key={key} className={page === key ? 'nav-link active' : 'nav-link'} onClick={() => { setPage(key); setMenuOpen(false) }}>{label}</button>)}</nav><button className="signout" onClick={() => { setMenuOpen(false); signOut() }}><span className="avatar">{(user.email || 'U')[0].toUpperCase()}</span><span>Sign out</span><Icon name="logout" /></button></div></header></>
+  const links = [['overview', 'Overview'], ['accounts', 'Accounts'], ['transactions', 'Transactions'], ['transfers', 'Transfers']]
+  return <><div className="utility"><div className="container utility-inner"><span>Customer account services</span><span><Icon name="shield" /> Secure session</span></div></div><header className="site-header"><div className="container header-inner"><Brand onClick={() => { setPage('overview'); setMenuOpen(false) }} /><button className="mobile-menu" onClick={() => setMenuOpen(open => !open)} aria-label="Toggle navigation"><span>{menuOpen ? 'Close' : 'Menu'}</span></button><nav className={menuOpen ? "nav open" : "nav"}>{links.map(([key, label]) => <button key={key} className={page === key ? 'nav-link active' : 'nav-link'} onClick={() => { setPage(key); setMenuOpen(false) }}>{label}</button>)}</nav><button className="text-link refresh-action" onClick={onRefresh} disabled={refreshing} aria-label="Refresh customer records"><Icon name="refresh" />{refreshing ? 'Refreshing…' : 'Refresh data'}</button><button className="signout" onClick={() => { setMenuOpen(false); signOut() }}><span className="avatar">{(user.email || 'U')[0].toUpperCase()}</span><span>Sign out</span><Icon name="logout" /></button></div></header></>
 }
 
 function Title({ eyebrow, title, description }) {
@@ -102,7 +103,7 @@ function Title({ eyebrow, title, description }) {
 }
 
 function ProviderNotice() {
-  return <div className="demo-alert"><Icon name="lock" /><span><strong>Banking provider not connected.</strong> Account opening, balances, deposits, withdrawals and transfers remain unavailable until a licensed provider is integrated and configured.</span></div>
+  return <div className="demo-alert"><Icon name="lock" /><span><strong>External banking provider not connected.</strong> Internal transfers between registered app accounts are available from Transfers. Deposits, withdrawals and transfers to real bank accounts require an authorized payment provider.</span></div>
 }
 
 function EmptyState({ icon = 'wallet', title, text }) {
@@ -110,7 +111,7 @@ function EmptyState({ icon = 'wallet', title, text }) {
 }
 
 function TransactionTable({ transactions }) {
-  if (!transactions.length) return <EmptyState icon="history" title="No transaction records" text="Transactions will appear here only after they are received and verified from the connected provider." />
+  if (!transactions.length) return <EmptyState icon="history" title="No transaction records" text="Transactions appear here after a completed internal transfer or when verified provider records are received." />
   return <div className="table-wrap"><table><thead><tr><th>Description</th><th>Reference</th><th>Date</th><th>Status</th><th className="right">Amount</th></tr></thead><tbody>{transactions.map(tx => <tr key={tx.id}><td><span className="txn"><i className={tx.direction === 'credit' ? 'credit' : ''}>{tx.direction === 'credit' ? '↓' : '↑'}</i><span><strong>{tx.description || tx.type || 'Transaction'}</strong><small>{tx.type || 'Account activity'}</small></span></span></td><td>{tx.reference || tx.provider_transaction_id || '—'}</td><td>{dateLabel(tx.posted_at || tx.created_at)}</td><td><span className="pill">{tx.status}</span></td><td className={'right amount ' + (tx.direction === 'credit' ? 'positive' : '')}>{tx.direction === 'debit' ? '−' : tx.direction === 'credit' ? '+' : ''}{money(tx.amount_minor, tx.currency || 'NGN')}</td></tr>)}</tbody></table></div>
 }
 
@@ -119,7 +120,7 @@ function Overview({ profile, customerAccount, accounts, transactions, setPage })
   const firstName = profile?.full_name?.trim().split(/\s+/)[0] || 'there'
   const currencies = [...new Set(knownBalances.map(account => account.currency || 'NGN'))]
   return <main className="container app-page">
-    <Title eyebrow="CUSTOMER OVERVIEW" title={'Welcome, ' + firstName} description="Your account records and verified provider activity." />
+    <Title eyebrow="CUSTOMER OVERVIEW" title={'Welcome, ' + firstName} description="Your customer records and internal application activity." />
     <ProviderNotice />
     <div className="stats">
       <article className="balance-card"><span>Available balance</span><strong>{knownBalances.length ? (currencies.length > 1 ? 'Multiple currencies' : money(knownBalances.reduce((sum, a) => sum + Number(a.balance_minor), 0), currencies[0])) : 'Not available'}</strong><small>{knownBalances.length ? 'Latest provider-reported balance' : 'Awaiting provider account connection'}</small></article>
@@ -137,14 +138,14 @@ function Overview({ profile, customerAccount, accounts, transactions, setPage })
         <div className="info-box"><small>Money movement</small><strong>Disabled</strong><span className="fine">No transfer or payment request can be submitted by this app.</span></div>
       </section>
     </div>
-    <section className="panel"><div className="panel-heading"><div><h2>Recent transactions</h2><p>Verified records from your linked accounts</p></div><button className="text-link" onClick={() => setPage('transactions')}>View all <Icon name="arrow" /></button></div><TransactionTable transactions={transactions.slice(0, 5)} /></section>
+    <section className="panel"><div className="panel-heading"><div><h2>Recent transactions</h2><p>Internal ledger and provider records</p></div><button className="text-link" onClick={() => setPage('transactions')}>View all <Icon name="arrow" /></button></div><TransactionTable transactions={transactions.slice(0, 5)} /></section>
   </main>
 }
 
 function Accounts({ customerAccount, accounts }) {
   return <main className="container app-page"><Title eyebrow="ACCOUNT SERVICES" title="Accounts" description="Your customer record and any accounts linked by a banking provider." /><ProviderNotice />
     <section className="panel"><div className="panel-heading"><div><h2>Customer account record</h2><p>Application status, not a deposit account or stored-value balance</p></div></div>
-      <div className="account-row"><span className="account-icon"><Icon name="shield" /></span><div className="account-info"><strong>Wells Fargo Bank prototype customer profile</strong><small>{customerAccount?.id || 'Customer record pending'}</small></div><div className="account-balance"><span className="pill">{customerAccount?.status || 'pending setup'}</span></div></div>
+      <div className="account-row"><span className="account-icon"><Icon name="shield" /></span><div className="account-info"><strong>THEOS X DIGITAL TECH Customer Portal customer profile</strong><small>{customerAccount?.id || 'Customer record pending'}</small></div><div className="account-balance"><span className="pill">{customerAccount?.status || 'pending setup'}</span></div></div>
     </section>
     <section className="panel"><div className="panel-heading"><div><h2>Linked bank accounts</h2><p>Only provider-created account records are shown here</p></div></div>
       {accounts.length ? <div className="account-grid">{accounts.map(account => <article className="panel detail-account" key={account.id}><span className="account-icon"><Icon name="wallet" /></span><span className="eyebrow">{account.account_type || 'Bank account'}</span><strong>{account.balance_minor == null ? 'Balance unavailable' : money(account.balance_minor, account.currency || 'NGN')}</strong><small>Account ending {account.account_number_masked || 'not supplied'}</small><small>Provider: {account.provider}</small><div className="account-detail-foot"><span className="pill">{account.status}</span><span>{account.balance_as_of ? 'Updated ' + dateLabel(account.balance_as_of) : 'No balance timestamp'}</span></div></article>)}</div> : <EmptyState title="No linked bank accounts" text="No account has been provisioned by a banking provider for this customer yet." />}
@@ -155,11 +156,79 @@ function Accounts({ customerAccount, accounts }) {
 function Transactions({ transactions }) {
   const [query, setQuery] = useState('')
   const filtered = useMemo(() => transactions.filter(tx => [tx.description, tx.reference, tx.type, tx.status, tx.provider_transaction_id].filter(Boolean).join(' ').toLowerCase().includes(query.toLowerCase())), [transactions, query])
-  return <main className="container app-page"><Title eyebrow="ACCOUNT ACTIVITY" title="Transactions" description="Transaction records received from the connected banking provider." /><ProviderNotice />
+  return <main className="container app-page"><Title eyebrow="ACCOUNT ACTIVITY" title="Transactions" description="Internal app transfers and any verified records received from a connected provider." /><ProviderNotice />
     <section className="panel"><div className="panel-heading"><div><h2>Transaction history</h2><p>{filtered.length} record{filtered.length === 1 ? '' : 's'}</p></div><input className="search" aria-label="Search transactions" placeholder="Search reference or description…" value={query} onChange={event => setQuery(event.target.value)} /></div><TransactionTable transactions={filtered} /></section>
   </main>
 }
 
+
+
+function Transfers({ wallet, onTransferComplete, onRefresh, refreshing }) {
+  const [recipient, setRecipient] = useState('')
+  const [amount, setAmount] = useState('')
+  const [description, setDescription] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+
+  const submit = async event => {
+    event.preventDefault()
+    setError('')
+    setMessage('')
+    const numericAmount = Number(amount)
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      setError('Enter an amount greater than zero.')
+      return
+    }
+    const amountMinor = Math.round(numericAmount * 100)
+    if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) {
+      setError('Enter a valid amount with no more than two decimal places.')
+      return
+    }
+    setBusy(true)
+    try {
+      const { data, error: transferError } = await supabase.rpc('transfer_internal', {
+        p_recipient_email: recipient.trim(),
+        p_amount_minor: amountMinor,
+        p_description: description.trim() || 'Internal transfer',
+        p_idempotency_key: crypto.randomUUID(),
+      })
+      if (transferError) throw transferError
+      const result = Array.isArray(data) ? data[0] : data
+      setMessage('Internal transfer completed. Reference: ' + (result?.reference || 'recorded'))
+      setRecipient('')
+      setAmount('')
+      setDescription('')
+      await onTransferComplete()
+    } catch (err) {
+      setError(err?.message || 'Transfer could not be completed.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return <main className="container app-page">
+    <Title eyebrow="INTERNAL TRANSFERS" title="Transfer funds" description="Send funds to another registered account in this application." />
+    <div className="demo-alert"><Icon name="lock" /><span><strong>Application-only transfers.</strong> These transactions are recorded in this app's Supabase ledger. They do not move money through Wells Fargo or any external bank. Wallets begin with a zero balance; deposits are not enabled.</span></div>
+    <div className="stats">
+      <article className="balance-card"><span>Available app balance</span><strong>{wallet ? money(wallet.balance_minor, wallet.currency || 'NGN') : 'Loading…'}</strong><small>Calculated from completed internal ledger entries</small></article>
+      <article className="stat"><span className="service-icon"><Icon name="wallet" /></span><small>Internal account number</small><strong className="account-number">{wallet?.account_number || 'Preparing account'}</strong><span className="muted">Not a bank account number</span></article>
+    </div>
+    <section className="panel transfer-panel">
+      <div className="panel-heading"><div><h2>New internal transfer</h2><p>Recipient must have registered in this application</p></div></div>
+      <form className="auth-fields transfer-fields" onSubmit={submit}>
+        <label>Recipient email<input type="email" value={recipient} onChange={e => setRecipient(e.target.value)} autoComplete="off" required placeholder="recipient@example.com" /></label>
+        <label>Amount (NGN)<input type="number" min="0.01" step="0.01" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} required placeholder="0.00" /></label>
+        <label>Description (optional)<input value={description} onChange={e => setDescription(e.target.value)} maxLength="120" placeholder="What is this transfer for?" /></label>
+        {error && <p className="error" role="alert">{error}</p>}
+        {message && <p className="success" role="status">{message}</p>}
+        <button className="button red" disabled={busy || !wallet || wallet.status !== 'active'}>{busy ? 'Processing transfer…' : 'Transfer funds'}</button>
+      </form>
+      <p className="fine">The database checks account status and available balance and records both the debit and credit in one atomic operation. Insufficient funds or an unknown recipient will fail without posting a transfer.</p>
+    </section>
+    <section className="panel"><div className="panel-heading"><div><h2>Recent activity</h2><p>Internal transfers saved to Supabase</p></div><button className="text-link" onClick={onRefresh} disabled={refreshing}><Icon name="refresh" /> Refresh</button></div><p className="muted">Your completed internal transfers also appear in Transaction history.</p></section>
+  </main>
+}
 
 function PasswordRecovery({ onComplete }) {
   const [password, setPassword] = useState('')
@@ -204,9 +273,12 @@ export default function App() {
   const [customerAccount, setCustomerAccount] = useState(null)
   const [accounts, setAccounts] = useState([])
   const [transactions, setTransactions] = useState([])
+  const [wallet, setWallet] = useState(null)
+  const [internalTransactions, setInternalTransactions] = useState([])
   const [loading, setLoading] = useState(isSupabaseConfigured)
   const [passwordRecovery, setPasswordRecovery] = useState(false)
   const [dataError, setDataError] = useState('')
+  const [dataLoading, setDataLoading] = useState(false)
 
   useEffect(() => {
     if (!isSupabaseConfigured) return undefined
@@ -236,38 +308,57 @@ export default function App() {
       setCustomerAccount(null)
       setAccounts([])
       setTransactions([])
+      setWallet(null)
+      setInternalTransactions([])
+      setDataLoading(false)
       return
     }
+
+    setDataLoading(true)
     setDataError('')
-    const userId = session.user.id
-    const [profileResult, customerResult, accountResult] = await Promise.all([
-      supabase.from('profiles').select('id,full_name,email,created_at').eq('id', userId).maybeSingle(),
-      supabase.from('customer_accounts').select('id,user_id,provider_customer_id,status,created_at,updated_at').eq('user_id', userId).maybeSingle(),
-      supabase.from('bank_accounts').select('id,user_id,provider,provider_account_id,account_number_masked,account_type,currency,balance_minor,balance_as_of,status,created_at').eq('user_id', userId).order('created_at', { ascending: false }),
-    ])
-    const failure = profileResult.error || customerResult.error || accountResult.error
-    if (failure) {
-      setDataError(failure.message)
-      return
-    }
-    setProfile(profileResult.data)
-    setCustomerAccount(customerResult.data)
-    setAccounts(accountResult.data || [])
-    if ((accountResult.data || []).length) {
-      const { data, error } = await supabase.from('transactions')
-        .select('id,bank_account_id,provider,provider_transaction_id,reference,type,status,direction,amount_minor,currency,description,posted_at,created_at')
-        .in('bank_account_id', accountResult.data.map(account => account.id))
-        .order('posted_at', { ascending: false, nullsFirst: false })
-        .limit(100)
-      if (error) setDataError(error.message)
-      setTransactions(data || [])
-    } else {
-      setTransactions([])
+    try {
+      const userId = session.user.id
+      const [profileResult, customerResult, accountResult] = await Promise.all([
+        supabase.from('profiles').select('id,full_name,email,created_at').eq('id', userId).maybeSingle(),
+        supabase.from('customer_accounts').select('id,user_id,provider_customer_id,status,created_at,updated_at').eq('user_id', userId).maybeSingle(),
+        supabase.from('bank_accounts').select('id,user_id,provider,provider_account_id,account_number_masked,account_type,currency,balance_minor,balance_as_of,status,created_at').eq('user_id', userId).order('created_at', { ascending: false }),
+      ])
+      const failure = profileResult.error || customerResult.error || accountResult.error
+      if (failure) throw failure
+
+      setProfile(profileResult.data)
+      setCustomerAccount(customerResult.data)
+      const accountRows = accountResult.data || []
+      setAccounts(accountRows)
+
+      const [providerTransactionsResult, walletResult, internalTransactionsResult] = await Promise.all([
+        accountRows.length
+          ? supabase.from('transactions').select('id,bank_account_id,provider,provider_transaction_id,reference,type,status,direction,amount_minor,currency,description,posted_at,created_at').in('bank_account_id', accountRows.map(account => account.id)).order('posted_at', { ascending: false, nullsFirst: false }).limit(100)
+          : Promise.resolve({ data: [], error: null }),
+        supabase.rpc('get_my_internal_wallet'),
+        supabase.from('internal_transactions').select('id,transfer_id,user_id,counterparty_user_id,reference,direction,amount_minor,currency,description,status,created_at').order('created_at', { ascending: false }).limit(100),
+      ])
+      const transactionFailure = providerTransactionsResult.error || walletResult.error || internalTransactionsResult.error
+      if (transactionFailure) throw transactionFailure
+      setTransactions(providerTransactionsResult.data || [])
+      const walletRow = Array.isArray(walletResult.data) ? walletResult.data[0] : walletResult.data
+      setWallet(walletRow || null)
+      setInternalTransactions((internalTransactionsResult.data || []).map(tx => ({
+        ...tx,
+        provider: 'internal',
+        provider_transaction_id: tx.transfer_id,
+        type: 'Internal transfer',
+        posted_at: tx.created_at,
+      })))
+    } catch (error) {
+      setDataError(error?.message || 'Unable to load customer records. Please retry.')
+    } finally {
+      setDataLoading(false)
     }
   }, [session])
 
   useEffect(() => {
-    if (!loading && session) loadCustomerData()
+    if (!loading && session) Promise.resolve().then(loadCustomerData)
   }, [loading, session, loadCustomerData])
 
   const signOut = async () => {
@@ -278,6 +369,8 @@ export default function App() {
       setCustomerAccount(null)
       setAccounts([])
       setTransactions([])
+      setWallet(null)
+      setInternalTransactions([])
       setPasswordRecovery(false)
     }
   }
@@ -286,9 +379,11 @@ export default function App() {
   if (passwordRecovery && session) return <PasswordRecovery onComplete={() => { setPasswordRecovery(false); setPage('overview') }} />
   if (!session) return <AuthForm onAuthenticated={setSession} />
 
-  return <div className="app-shell"><Header page={page} setPage={setPage} user={session.user} signOut={signOut} />
-    {dataError && <div className="container"><p className="error" role="alert">Unable to load account data: {dataError}. Refresh the page or contact support.</p></div>}
-    {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'transactions' ? <Transactions transactions={transactions} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={transactions} setPage={setPage} />}
-    <footer className="footer"><div className="container footer-bottom"><span>Wells Fargo Bank prototype · Account services</span><span>Unofficial demo; not affiliated with Wells Fargo. Money movement is disabled.</span></div></footer>
+  const allTransactions = [...internalTransactions, ...transactions].sort((a, b) => new Date(b.posted_at || b.created_at || 0) - new Date(a.posted_at || a.created_at || 0))
+
+  return <div className="app-shell"><Header page={page} setPage={setPage} user={session.user} signOut={signOut} onRefresh={loadCustomerData} refreshing={dataLoading} />
+    {dataError && <div className="container"><p className="error" role="alert">Unable to load account data: {dataError}. Use Refresh data to retry, or contact support if the problem continues.</p></div>}
+    {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'transactions' ? <Transactions transactions={allTransactions} /> : page === 'transfers' ? <Transfers wallet={wallet} onTransferComplete={loadCustomerData} onRefresh={loadCustomerData} refreshing={dataLoading} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={allTransactions} setPage={setPage} />}
+    <footer className="footer"><div className="container footer-bottom"><span>THEOS X DIGITAL TECH Customer Portal · Account services</span><span>Independent customer portal. No real deposit accounts or money movement are provided.</span></div></footer>
   </div>
 }
