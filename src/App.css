@@ -21,3 +21,7 @@
 .brand-disclaimer{margin:0 0 18px;padding:12px 14px;border:1px solid #e7c9a0;border-radius:6px;background:#fff8ed;color:#684d2a;font-size:11px;line-height:1.65}.brand-disclaimer strong{display:block;margin-bottom:3px}
 
 .refresh-action{white-space:nowrap;padding:7px 0;gap:6px}.refresh-action:disabled{opacity:.55;cursor:wait}@media(max-width:760px){.refresh-action{font-size:0;gap:0}.refresh-action svg{width:19px;height:19px}.header-inner .brand-copy strong{font-size:16px}.header-inner .brand-mark{width:34px;height:34px;font-size:20px}}
+
+/* Internal transfer workflow */
+.transfer-panel{max-width:760px}.transfer-fields{max-width:620px}.transfer-fields .button{align-self:flex-start;min-height:44px;padding:0 24px}.account-number{font-size:clamp(16px,2vw,23px)!important;letter-spacing:.5px;overflow-wrap:anywhere}.demo-alert{line-height:1.7}.demo-alert strong{display:inline-block;margin-right:4px}
+@media(max-width:760px){.transfer-fields .button{width:100%}.account-number{font-size:18px!important}}
