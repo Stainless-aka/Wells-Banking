@@ -1,6 +1,6 @@
-# Wells Fargo Bank Prototype
+# THEOS X DIGITAL TECH Customer Portal
 
-An independent prototype using React, Vite, JavaScript, Supabase Auth, and PostgreSQL to test authentication and private customer records. It is **not affiliated with, endorsed by, or operated by Wells Fargo Bank**. Do not use real Wells Fargo credentials. It does not provide banking services or move money.
+An independent prototype using React, Vite, JavaScript, Supabase Auth, and PostgreSQL to test authentication and private customer records. It is an independent customer portal operated under THEOS X DIGITAL TECH. It does not provide deposit accounts, financial services, or money movement.
 
 ## Current scope
 
@@ -36,11 +36,11 @@ npm run build
 
 ## Configure Supabase
 
-1. Create a Supabase project.
-2. For a **new, empty Supabase project**, apply both migrations in timestamp order: `202610140001_initial_schema.sql`, then `202610140002_remove_demo_schema.sql`. The Supabase CLI applies pending migrations in order. If the older demo migration was already applied to an existing project, do **not** rerun migration 001 manually; review the data-impact note in migration 002 and apply migration 002 only. It removes the previous synthetic account/transaction tables.
-3. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` and in your deployment environment.
-4. Configure Auth email confirmation, password policy, SMTP/email delivery, redirect URLs, and rate limits for the intended environment.
-5. Register a test user using a real email address. The Auth trigger creates a `profiles` row and a `customer_accounts` row with `pending_provider` status. It does not create a bank account or balance.
+1. The connected Supabase project is already configured and has the first two schema migrations applied.
+2. The security hardening migration `202610150001_security_and_auth_hardening.sql` has also been applied to the connected project. For a different project, apply the migrations in timestamp order after reviewing the note in migration 002; do not rerun schema migrations blindly on a database with existing data.
+3. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` and in the Vercel deployment environment. Use the project URL and public publishable/anon key only.
+4. Configure Auth email confirmation, leaked-password protection, SMTP/email delivery, redirect URLs, and rate limits in Supabase Auth settings.
+5. Register a test user using a real email address. The Auth trigger creates a `profiles` row and a `customer_accounts` row with `pending_provider` status. It does not create a deposit account or balance.
 
 Use only the Supabase publishable/anon key in browser environment variables. Never expose a service-role key in frontend code.
 
@@ -63,4 +63,4 @@ Deploy the frontend to Vercel and set the two public Supabase environment variab
 
 ## Brand and regulatory note
 
-This is an independent, unofficial prototype. It is not affiliated with, endorsed by, or operated by Wells Fargo Bank. The name is used only to identify the requested prototype; this project must not be presented as an official Wells Fargo service or collect Wells Fargo credentials. Use only branding and services you are authorized to represent. This codebase does not make the operator a bank or authorize deposit-taking or money transmission.
+This is an independent, unofficial prototype. It is not affiliated with, endorsed by, or operated by THEOS X DIGITAL TECH. The name is used only to identify the requested prototype; this project must not be presented as an official official service of another financial institution or collect credentials for another financial institution. Use only branding and services you are authorized to represent. This codebase does not make the operator a bank or authorize deposit-taking or money transmission.
