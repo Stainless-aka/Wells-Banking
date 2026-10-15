@@ -9,7 +9,7 @@ const money = (minor, currency = 'NGN') => {
 const dateLabel = value => value ? new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—'
 
 function Brand({ onClick }) {
-  return <button className="brand" onClick={onClick} aria-label="Wells Fargo Bank prototype home"><span className="brand-mark">W</span><span className="brand-copy"><strong>Wells Fargo Bank</strong><small>ACCOUNT SERVICES</small></span></button>
+  return <button className="brand" onClick={onClick} aria-label="THEOS X DIGITAL TECH Customer Portal home"><span className="brand-mark">W</span><span className="brand-copy"><strong>THEOS X DIGITAL TECH</strong><small>ACCOUNT SERVICES</small></span></button>
 }
 
 function Icon({ name }) {
@@ -22,6 +22,7 @@ function Icon({ name }) {
     close: 'M18 6 6 18M6 6l12 12',
     arrow: 'M5 12h14m-6-6 6 6-6 6',
     lock: 'M5 10h14v11H5zM8 10V7a4 4 0 0 1 8 0v3',
+    refresh: 'M20 7v5h-5M4 17v-5h5M5.6 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.4-3',
   }
   return <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={paths[name] || paths.home} /></svg>
 }
@@ -72,9 +73,9 @@ function AuthForm({ onAuthenticated }) {
   return <main className="auth-page"><section className="auth-modal auth-card">
     <Brand onClick={() => setMode('signin')} />
     <span className="eyebrow">INDEPENDENT PROTOTYPE</span>
-    <h1>{mode === 'signup' ? 'Create your account' : mode === 'reset' ? 'Reset your password' : 'Sign in to Wells Fargo Bank prototype'}</h1>
+    <h1>{mode === 'signup' ? 'Create your account' : mode === 'reset' ? 'Reset your password' : 'Sign in to THEOS X DIGITAL TECH Customer Portal'}</h1>
     {!isSupabaseConfigured && <p className="error" role="alert">Supabase is not configured. Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to enable authentication.</p>}
-    <p className="brand-disclaimer" role="note"><strong>Unofficial prototype.</strong> This application is not affiliated with or endorsed by Wells Fargo Bank. Do not enter Wells Fargo banking credentials or use this prototype for real banking.</p>
+    <p className="brand-disclaimer" role="note"><strong>Unofficial prototype.</strong> This application is an independent portal operated by THEOS X DIGITAL TECH. Do not enter Wells Fargo banking credentials or use this prototype for real banking.</p>
     <form onSubmit={submit} className="auth-fields">
       {mode === 'signup' && <label>Full name<input value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" minLength="2" required /></label>}
       <label>Email address<input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required /></label>
@@ -91,10 +92,10 @@ function AuthForm({ onAuthenticated }) {
   </section></main>
 }
 
-function Header({ page, setPage, user, signOut }) {
+function Header({ page, setPage, user, signOut, onRefresh, refreshing }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const links = [['overview', 'Overview'], ['accounts', 'Accounts'], ['transactions', 'Transactions']]
-  return <><div className="utility"><div className="container utility-inner"><span>Customer account services</span><span><Icon name="shield" /> Secure session</span></div></div><header className="site-header"><div className="container header-inner"><Brand onClick={() => { setPage('overview'); setMenuOpen(false) }} /><button className="mobile-menu" onClick={() => setMenuOpen(open => !open)} aria-label="Toggle navigation"><span>{menuOpen ? 'Close' : 'Menu'}</span></button><nav className={menuOpen ? "nav open" : "nav"}>{links.map(([key, label]) => <button key={key} className={page === key ? 'nav-link active' : 'nav-link'} onClick={() => { setPage(key); setMenuOpen(false) }}>{label}</button>)}</nav><button className="signout" onClick={() => { setMenuOpen(false); signOut() }}><span className="avatar">{(user.email || 'U')[0].toUpperCase()}</span><span>Sign out</span><Icon name="logout" /></button></div></header></>
+  return <><div className="utility"><div className="container utility-inner"><span>Customer account services</span><span><Icon name="shield" /> Secure session</span></div></div><header className="site-header"><div className="container header-inner"><Brand onClick={() => { setPage('overview'); setMenuOpen(false) }} /><button className="mobile-menu" onClick={() => setMenuOpen(open => !open)} aria-label="Toggle navigation"><span>{menuOpen ? 'Close' : 'Menu'}</span></button><nav className={menuOpen ? "nav open" : "nav"}>{links.map(([key, label]) => <button key={key} className={page === key ? 'nav-link active' : 'nav-link'} onClick={() => { setPage(key); setMenuOpen(false) }}>{label}</button>)}</nav><button className="text-link refresh-action" onClick={onRefresh} disabled={refreshing} aria-label="Refresh customer records"><Icon name="refresh" />{refreshing ? 'Refreshing…' : 'Refresh data'}</button><button className="signout" onClick={() => { setMenuOpen(false); signOut() }}><span className="avatar">{(user.email || 'U')[0].toUpperCase()}</span><span>Sign out</span><Icon name="logout" /></button></div></header></>
 }
 
 function Title({ eyebrow, title, description }) {
@@ -144,7 +145,7 @@ function Overview({ profile, customerAccount, accounts, transactions, setPage })
 function Accounts({ customerAccount, accounts }) {
   return <main className="container app-page"><Title eyebrow="ACCOUNT SERVICES" title="Accounts" description="Your customer record and any accounts linked by a banking provider." /><ProviderNotice />
     <section className="panel"><div className="panel-heading"><div><h2>Customer account record</h2><p>Application status, not a deposit account or stored-value balance</p></div></div>
-      <div className="account-row"><span className="account-icon"><Icon name="shield" /></span><div className="account-info"><strong>Wells Fargo Bank prototype customer profile</strong><small>{customerAccount?.id || 'Customer record pending'}</small></div><div className="account-balance"><span className="pill">{customerAccount?.status || 'pending setup'}</span></div></div>
+      <div className="account-row"><span className="account-icon"><Icon name="shield" /></span><div className="account-info"><strong>THEOS X DIGITAL TECH Customer Portal customer profile</strong><small>{customerAccount?.id || 'Customer record pending'}</small></div><div className="account-balance"><span className="pill">{customerAccount?.status || 'pending setup'}</span></div></div>
     </section>
     <section className="panel"><div className="panel-heading"><div><h2>Linked bank accounts</h2><p>Only provider-created account records are shown here</p></div></div>
       {accounts.length ? <div className="account-grid">{accounts.map(account => <article className="panel detail-account" key={account.id}><span className="account-icon"><Icon name="wallet" /></span><span className="eyebrow">{account.account_type || 'Bank account'}</span><strong>{account.balance_minor == null ? 'Balance unavailable' : money(account.balance_minor, account.currency || 'NGN')}</strong><small>Account ending {account.account_number_masked || 'not supplied'}</small><small>Provider: {account.provider}</small><div className="account-detail-foot"><span className="pill">{account.status}</span><span>{account.balance_as_of ? 'Updated ' + dateLabel(account.balance_as_of) : 'No balance timestamp'}</span></div></article>)}</div> : <EmptyState title="No linked bank accounts" text="No account has been provisioned by a banking provider for this customer yet." />}
@@ -207,6 +208,7 @@ export default function App() {
   const [loading, setLoading] = useState(isSupabaseConfigured)
   const [passwordRecovery, setPasswordRecovery] = useState(false)
   const [dataError, setDataError] = useState('')
+  const [dataLoading, setDataLoading] = useState(false)
 
   useEffect(() => {
     if (!isSupabaseConfigured) return undefined
@@ -236,33 +238,42 @@ export default function App() {
       setCustomerAccount(null)
       setAccounts([])
       setTransactions([])
+      setDataLoading(false)
       return
     }
+
+    setDataLoading(true)
     setDataError('')
-    const userId = session.user.id
-    const [profileResult, customerResult, accountResult] = await Promise.all([
-      supabase.from('profiles').select('id,full_name,email,created_at').eq('id', userId).maybeSingle(),
-      supabase.from('customer_accounts').select('id,user_id,provider_customer_id,status,created_at,updated_at').eq('user_id', userId).maybeSingle(),
-      supabase.from('bank_accounts').select('id,user_id,provider,provider_account_id,account_number_masked,account_type,currency,balance_minor,balance_as_of,status,created_at').eq('user_id', userId).order('created_at', { ascending: false }),
-    ])
-    const failure = profileResult.error || customerResult.error || accountResult.error
-    if (failure) {
-      setDataError(failure.message)
-      return
-    }
-    setProfile(profileResult.data)
-    setCustomerAccount(customerResult.data)
-    setAccounts(accountResult.data || [])
-    if ((accountResult.data || []).length) {
-      const { data, error } = await supabase.from('transactions')
-        .select('id,bank_account_id,provider,provider_transaction_id,reference,type,status,direction,amount_minor,currency,description,posted_at,created_at')
-        .in('bank_account_id', accountResult.data.map(account => account.id))
-        .order('posted_at', { ascending: false, nullsFirst: false })
-        .limit(100)
-      if (error) setDataError(error.message)
-      setTransactions(data || [])
-    } else {
-      setTransactions([])
+    try {
+      const userId = session.user.id
+      const [profileResult, customerResult, accountResult] = await Promise.all([
+        supabase.from('profiles').select('id,full_name,email,created_at').eq('id', userId).maybeSingle(),
+        supabase.from('customer_accounts').select('id,user_id,provider_customer_id,status,created_at,updated_at').eq('user_id', userId).maybeSingle(),
+        supabase.from('bank_accounts').select('id,user_id,provider,provider_account_id,account_number_masked,account_type,currency,balance_minor,balance_as_of,status,created_at').eq('user_id', userId).order('created_at', { ascending: false }),
+      ])
+      const failure = profileResult.error || customerResult.error || accountResult.error
+      if (failure) throw failure
+
+      setProfile(profileResult.data)
+      setCustomerAccount(customerResult.data)
+      const accountRows = accountResult.data || []
+      setAccounts(accountRows)
+
+      if (accountRows.length) {
+        const { data, error } = await supabase.from('transactions')
+          .select('id,bank_account_id,provider,provider_transaction_id,reference,type,status,direction,amount_minor,currency,description,posted_at,created_at')
+          .in('bank_account_id', accountRows.map(account => account.id))
+          .order('posted_at', { ascending: false, nullsFirst: false })
+          .limit(100)
+        if (error) throw error
+        setTransactions(data || [])
+      } else {
+        setTransactions([])
+      }
+    } catch (error) {
+      setDataError(error?.message || 'Unable to load customer records. Please retry.')
+    } finally {
+      setDataLoading(false)
     }
   }, [session])
 
@@ -286,9 +297,9 @@ export default function App() {
   if (passwordRecovery && session) return <PasswordRecovery onComplete={() => { setPasswordRecovery(false); setPage('overview') }} />
   if (!session) return <AuthForm onAuthenticated={setSession} />
 
-  return <div className="app-shell"><Header page={page} setPage={setPage} user={session.user} signOut={signOut} />
-    {dataError && <div className="container"><p className="error" role="alert">Unable to load account data: {dataError}. Refresh the page or contact support.</p></div>}
+  return <div className="app-shell"><Header page={page} setPage={setPage} user={session.user} signOut={signOut} onRefresh={loadCustomerData} refreshing={dataLoading} />
+    {dataError && <div className="container"><p className="error" role="alert">Unable to load account data: {dataError}. Use Refresh data to retry, or contact support if the problem continues.</p></div>}
     {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'transactions' ? <Transactions transactions={transactions} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={transactions} setPage={setPage} />}
-    <footer className="footer"><div className="container footer-bottom"><span>Wells Fargo Bank prototype · Account services</span><span>Unofficial demo; not affiliated with Wells Fargo. Money movement is disabled.</span></div></footer>
+    <footer className="footer"><div className="container footer-bottom"><span>THEOS X DIGITAL TECH Customer Portal · Account services</span><span>Unofficial demo; not affiliated with Wells Fargo. Money movement is disabled.</span></div></footer>
   </div>
 }
