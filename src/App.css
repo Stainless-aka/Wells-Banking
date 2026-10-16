@@ -69,3 +69,48 @@
     color: #4b4c52;
   }
 }
+
+
+/* Prevent the full customer navigation from forcing the viewport wider than the screen. */
+@media (min-width: 761px) {
+  .site-header .header-inner {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 18px;
+    row-gap: 0;
+    padding-top: 12px;
+  }
+
+  .site-header .brand { order: 1; }
+  .site-header .refresh-action { order: 2; margin-left: auto; }
+  .site-header .signout { order: 3; flex-shrink: 0; }
+  .site-header .nav {
+    order: 4;
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0 0 2px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    column-gap: clamp(10px, 1.5vw, 20px);
+    row-gap: 0;
+  }
+  .site-header .nav-link {
+    padding: 13px 0;
+    font-size: 11px;
+  }
+  .site-header .nav-link.active::after { bottom: 0; }
+}
+
+.site-header,
+.site-header .header-inner,
+.site-header .nav { min-width: 0; }
+
+@media (max-width: 760px) {
+  .site-header .header-inner { flex-wrap: wrap; }
+  .site-header .nav { max-width: 100%; box-sizing: border-box; }
+  .site-header .nav-link { white-space: normal; overflow-wrap: anywhere; }
+}
