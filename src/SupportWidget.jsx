@@ -72,12 +72,17 @@ export default function SupportWidget({ user }) {
       setMessagesByRequest(grouped)
     }
     setLoading(false)
-  }, [user?.id])
+  }, [user])
 
   useEffect(() => {
-    if (!open || !user?.id) return
-    loadRequests()
-  }, [open, user?.id, loadRequests])
+    if (!open || !user?.id) return undefined
+
+    const timer = setTimeout(() => {
+      loadRequests()
+    }, 0)
+
+    return () => clearTimeout(timer)
+  }, [open, user, loadRequests])
 
   useEffect(() => {
     if (!open || !user?.id) return undefined
@@ -106,7 +111,7 @@ export default function SupportWidget({ user }) {
       supabase.removeChannel(requestsChannel)
       supabase.removeChannel(messagesChannel)
     }
-  }, [open, user?.id, loadRequests])
+  }, [open, user, loadRequests])
 
   const submitRequest = async event => {
     event.preventDefault()
