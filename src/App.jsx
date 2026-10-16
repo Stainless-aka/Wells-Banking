@@ -222,23 +222,6 @@ function Transfers({ userId, onTransferComplete, onRefresh, refreshing }) {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
-  const mode = ['support', 'review', 'normal'].includes(transferNotification?.mode)
-    ? transferNotification.mode
-    : 'support'
-  const category = ['VAT', 'COT', 'IRS'].includes(transferNotification?.category)
-    ? transferNotification.category
-    : 'VAT'
-
-  const resetForm = () => {
-    setFullName('')
-    setBankName('')
-    setAccountNumber('')
-    setSwiftBic('')
-    setBankAddress('')
-    setCountry('')
-    setAmount('')
-  }
-
   const submit = async event => {
     event.preventDefault()
     setError('')
