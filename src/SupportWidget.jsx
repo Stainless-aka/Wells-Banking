@@ -75,6 +75,40 @@ export default function SupportWidget({ user }) {
     }
   }, [open, user?.id])
 
+  useEffect(() => {
+    if (!open || !user?.id) return undefined
+
+    let active = true
+    const channel = supabase
+      .channel(`customer-support-${user.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'support_requests',
+        filter: `user_id=eq.${user.id}`,
+      }, async () => {
+        const { data, error: refreshError } = await supabase
+          .from('support_requests')
+          .select('id,subject,category,message,status,admin_response,created_at,updated_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10)
+
+        if (!active) return
+        if (refreshError) {
+          setError(refreshError.message || 'Could not refresh your support requests.')
+          return
+        }
+        setRequests(data || [])
+      })
+      .subscribe()
+
+    return () => {
+      active = false
+      supabase.removeChannel(channel)
+    }
+  }, [open, user?.id])
+
   const submitRequest = async event => {
     event.preventDefault()
     if (!user?.id) {
