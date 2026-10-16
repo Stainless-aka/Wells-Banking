@@ -20,6 +20,7 @@ const statusLabel = {
 
 export default function SupportWidget({ user }) {
   const [open, setOpen] = useState(false)
+  const [showNewChat, setShowNewChat] = useState(false)
   const [subject, setSubject] = useState('')
   const [category, setCategory] = useState('general')
   const [message, setMessage] = useState('')
@@ -50,6 +51,7 @@ export default function SupportWidget({ user }) {
     const items = data || []
     setRequests(items)
     if (!items.length) {
+      setShowNewChat(true)
       setMessagesByRequest({})
       setLoading(false)
       return
@@ -159,6 +161,7 @@ export default function SupportWidget({ user }) {
 
     setSubject('')
     setMessage('')
+    setShowNewChat(false)
     setSuccess('Your support request was submitted successfully.')
     await loadRequests()
   }
@@ -216,7 +219,7 @@ export default function SupportWidget({ user }) {
       {error && <p className="support-widget-error" role="alert">{error}</p>}
       {success && <p className="support-widget-success" role="status">{success}</p>}
 
-      <form className="support-widget-form" onSubmit={submitRequest}>
+      {(showNewChat || requests.length === 0) && <form className="support-widget-form" onSubmit={submitRequest}>
         <h3>Start a new request</h3>
         <label>
           Subject
@@ -235,16 +238,19 @@ export default function SupportWidget({ user }) {
         <button className="support-widget-submit" type="submit" disabled={sending !== ''}>
           {sending === 'new' ? 'Submitting…' : 'Submit support request'}
         </button>
-      </form>
+      </form>}
 
       <div className="support-widget-history">
         <div className="support-widget-history-head">
-          <strong>Your recent requests</strong>
-          <button type="button" onClick={loadRequests} disabled={loading}>{loading ? 'Loading…' : 'Refresh'}</button>
+          <strong>{requests.length ? 'Your conversation' : 'Customer support chat'}</strong>
+          <div className="support-widget-history-actions">
+            {requests.length > 0 && <button type="button" onClick={() => { setShowNewChat(value => !value); setError(''); setSuccess('') }}>{showNewChat ? 'Cancel' : 'New chat'}</button>}
+            <button type="button" onClick={loadRequests} disabled={loading}>{loading ? 'Loading…' : 'Refresh'}</button>
+          </div>
         </div>
         {requests.length === 0
           ? <p className="support-widget-muted">{loading ? 'Loading requests…' : 'Your submitted requests will appear here.'}</p>
-          : requests.map(request => {
+          : [requests[0]].filter(Boolean).map(request => {
               const conversation = messagesByRequest[request.id] || []
               return <article className="support-widget-request" key={request.id}>
                 <div><strong>{request.subject}</strong><span className={`support-widget-status status-${request.status}`}>{statusLabel[request.status] || request.status}</span></div>
