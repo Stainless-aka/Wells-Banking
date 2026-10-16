@@ -307,11 +307,11 @@ function Transfers({ userId, notificationSettings, onTransferComplete, onRefresh
       if (insertError) throw insertError
 
       if (mode === 'support') {
-        setMessage(`Please contact customer support regarding your ${category} enquiry. No transfer was initiated.`)
+        setMessage(`Please contact customer support regarding your ${category} enquiry.`)
       } else if (mode === 'review') {
-        setMessage('Your transfer request has been recorded for review. No transfer was initiated.')
+        setMessage('Your transfer request has been recorded for review.')
       } else {
-        setMessage('Your transfer request has been submitted. No transfer was initiated.')
+        setMessage('Your transfer request has been submitted for processing.')
       }
       setFullName('')
       setBankName('')
