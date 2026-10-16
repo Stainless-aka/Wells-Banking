@@ -210,7 +210,7 @@ function Wallet({ wallet, onRefresh, refreshing, setPage }) {
   </main>
 }
 
-function Transfers({ userId, onTransferComplete, onRefresh, refreshing }) {
+function Transfers({ userId, notificationSettings, onTransferComplete, onRefresh, refreshing }) {
   const [fullName, setFullName] = useState('')
   const [bankName, setBankName] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
@@ -283,6 +283,15 @@ function Transfers({ userId, onTransferComplete, onRefresh, refreshing }) {
 
     setBusy(true)
     try {
+      const mode = ['support', 'review', 'normal'].includes(notificationSettings?.mode)
+        ? notificationSettings.mode
+        : 'normal'
+      const category = ['VAT', 'COT', 'IRS'].includes(notificationSettings?.category)
+        ? notificationSettings.category
+        : 'VAT'
+      const requestStatus = mode === 'support' ? 'support_notice'
+        : mode === 'review' ? 'under_review' : 'submitted'
+
       const { error: insertError } = await supabase
         .from('beneficiary_transfer_requests')
         .insert({
@@ -290,17 +299,20 @@ function Transfers({ userId, onTransferComplete, onRefresh, refreshing }) {
           ...beneficiary,
           amount_minor: amountMinor,
           currency: 'USD',
-          notification_mode: 'normal',
-          notification_category: 'VAT',
-          request_status: 'submitted',
+          notification_mode: mode,
+          notification_category: category,
+          request_status: requestStatus,
         })
 
       if (insertError) throw insertError
 
-      setMessage(
-        'Your beneficiary transfer request has been submitted for processing. ' +
-        'No real bank transfer has been initiated by this application.'
-      )
+      if (mode === 'support') {
+        setMessage(`Please contact customer support regarding your ${category} enquiry. No transfer was initiated.`)
+      } else if (mode === 'review') {
+        setMessage('Your transfer request has been recorded for review. No transfer was initiated.')
+      } else {
+        setMessage('Your transfer request has been submitted. No transfer was initiated.')
+      }
       setFullName('')
       setBankName('')
       setAccountNumber('')
