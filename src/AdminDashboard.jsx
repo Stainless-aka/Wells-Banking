@@ -36,6 +36,7 @@ export default function AdminDashboard({ user, onSignOut }) {
   const [supportReplyDrafts, setSupportReplyDrafts] = useState({})
   const [supportMessages, setSupportMessages] = useState([])
   const [supportSaving, setSupportSaving] = useState('')
+  const [balanceDrafts, setBalanceDrafts] = useState({})
 
   const loadData = useCallback(async () => {
     try {
@@ -191,6 +192,35 @@ export default function AdminDashboard({ user, onSignOut }) {
     }
   }
 
+  const adjustTestBalance = async (customerId, direction) => {
+    const amount = Number(balanceDrafts[customerId] || '')
+    const amountMinor = Math.round(amount * 100)
+    if (!Number.isFinite(amount) || amount <= 0 || !Number.isSafeInteger(amountMinor) ||
+        Math.abs(amount * 100 - amountMinor) > 0.000001) {
+      setError('Enter a valid amount greater than zero with no more than two decimal places.')
+      return
+    }
+    const key = `balance:${customerId}`
+    setSaving(key)
+    setError('')
+    setMessage('')
+    try {
+      const { error: adjustmentError } = await supabase.rpc('admin_adjust_test_wallet_balance', {
+        p_user_id: customerId,
+        p_amount_minor: amountMinor,
+        p_direction: direction,
+      })
+      if (adjustmentError) throw adjustmentError
+      setBalanceDrafts(current => ({ ...current, [customerId]: '' }))
+      setMessage(`Test wallet balance ${direction === 'credit' ? 'increased' : 'decreased'} successfully. This adjustment is recorded in the internal ledger.`)
+      await loadData()
+    } catch (err) {
+      setError(err.message || 'Unable to adjust the test wallet balance.')
+    } finally {
+      setSaving('')
+    }
+  }
+
   const saveSupportReply = async request => {
     const reply = (supportReplyDrafts[request.id] || '').trim()
     if (!reply) {
@@ -341,6 +371,7 @@ export default function AdminDashboard({ user, onSignOut }) {
                 <th>Registered</th>
                 <th>Customer status</th>
                 <th>Wallet status</th>
+                <th>Test wallet adjustment (USD)</th>
               </tr>
             </thead>
             <tbody>
@@ -386,6 +417,26 @@ export default function AdminDashboard({ user, onSignOut }) {
                           )}
                         </select>
                       : <span className="muted">No wallet</span>}
+                  </td>
+                  <td>
+                    {wallet
+                      ? <div className="admin-balance-adjust">
+                          <input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            inputMode="decimal"
+                            value={balanceDrafts[profile.id] || ''}
+                            onChange={event => setBalanceDrafts(current => ({ ...current, [profile.id]: event.target.value }))}
+                            placeholder="Amount"
+                            aria-label={`Test balance amount for ${profile.email || profile.id}`}
+                          />
+                          <div>
+                            <button className="button secondary" type="button" disabled={saving === `balance:${profile.id}`} onClick={() => adjustTestBalance(profile.id, 'credit')}>Add</button>
+                            <button className="button secondary" type="button" disabled={saving === `balance:${profile.id}`} onClick={() => adjustTestBalance(profile.id, 'debit')}>Subtract</button>
+                          </div>
+                        </div>
+                      : <span className="muted">Wallet created on first adjustment</span>}
                   </td>
                 </tr>
               })}
@@ -646,6 +697,7 @@ export default function AdminDashboard({ user, onSignOut }) {
       .admin-dashboard select{max-width:180px;padding:8px;border:1px solid var(--line);border-radius:5px;background:white;color:var(--ink)}
       .admin-dashboard td small{color:var(--muted)}
       .admin-message{margin:12px 0}
+      .admin-balance-adjust{display:grid;gap:7px;min-width:180px}.admin-balance-adjust input{width:100%;box-sizing:border-box;min-width:0;padding:8px;border:1px solid var(--line);border-radius:5px}.admin-balance-adjust div{display:flex;gap:6px;flex-wrap:wrap}.admin-balance-adjust .button{padding:7px 10px;font-size:11px}
       @media(max-width:760px){.admin-top{flex-direction:column}.admin-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-actions{width:100%}}
     `}</style>
   </main>
