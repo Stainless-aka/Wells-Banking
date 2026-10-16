@@ -283,7 +283,6 @@ export default function SupportWidget({ user }) {
               </article>
             })}
       </div>
-      <p className="support-widget-note">Never send passwords, verification codes, or full card details in a support message.</p>
     </section>}
   </>
 }
