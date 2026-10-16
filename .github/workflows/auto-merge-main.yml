@@ -1,0 +1,29 @@
+
+name: Auto Merge Feature to Main
+
+on:
+  push:
+    branches:
+      - feature/banking-mvp
+
+permissions:
+  contents: write
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Merge feature branch into main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin
+          git checkout -B main origin/main
+          git merge --no-edit origin/feature/banking-mvp
+          git push origin main
