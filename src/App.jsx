@@ -221,11 +221,13 @@ function Transfers({ userId, notificationSettings, onTransferComplete, onRefresh
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [showVatTestModal, setShowVatTestModal] = useState(false)
 
   const submit = async event => {
     event.preventDefault()
     setError('')
     setMessage('')
+    setShowVatTestModal(false)
 
     const beneficiary = {
       full_name: fullName.trim(),
@@ -306,8 +308,10 @@ function Transfers({ userId, notificationSettings, onTransferComplete, onRefresh
 
       if (insertError) throw insertError
 
-      if (mode === 'support') {
-        setMessage(category === "VAT" ? "VAT Code" : `Please contact customer support regarding your ${category} enquiry.`)
+      if (mode === 'support' && category === 'VAT') {
+        setShowVatTestModal(true)
+      } else if (mode === 'support') {
+        setMessage(`Please contact customer support regarding your ${category} enquiry.`)
       } else if (mode === 'review') {
         setMessage('Your transfer request has been recorded for review.')
       } else {
@@ -396,6 +400,17 @@ function Transfers({ userId, notificationSettings, onTransferComplete, onRefresh
         </button>
       </div>
     </section>
+    {showVatTestModal && <div className="backdrop vat-test-backdrop" role="presentation" onClick={() => setShowVatTestModal(false)}>
+      <section className="vat-test-modal" role="dialog" aria-modal="true" aria-labelledby="vat-test-title" aria-describedby="vat-test-description" onClick={event => event.stopPropagation()}>
+        <button className="vat-test-close" type="button" aria-label="Close notice" onClick={() => setShowVatTestModal(false)}><Icon name="close" /></button>
+        <div className="vat-test-icon"><Icon name="shield" /></div>
+        <span className="vat-test-label">TESTING NOTICE</span>
+        <h2 id="vat-test-title">VAT Code</h2>
+        <p id="vat-test-description">Please contact the bank customer support regarding your VAT Code</p>
+        <p className="vat-test-disclaimer">This is a test notification shown by the application. It does not verify that a tax, fee, or payment is due.</p>
+        <button className="button red vat-test-confirm" type="button" onClick={() => setShowVatTestModal(false)}>Understood</button>
+      </section>
+    </div>}
   </main>
 }
 
