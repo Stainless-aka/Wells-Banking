@@ -115,14 +115,14 @@ function TransactionTable({ transactions }) {
   return <div className="table-wrap"><table><thead><tr><th>Description</th><th>Reference</th><th>Date</th><th>Status</th><th className="right">Amount</th></tr></thead><tbody>{transactions.map(tx => <tr key={tx.id}><td><span className="txn"><i className={tx.direction === 'credit' ? 'credit' : ''}>{tx.direction === 'credit' ? '↓' : '↑'}</i><span><strong>{tx.description || tx.type || 'Transaction'}</strong><small>{tx.type || 'Account activity'}</small></span></span></td><td>{tx.reference || tx.provider_transaction_id || '—'}</td><td>{dateLabel(tx.posted_at || tx.created_at)}</td><td><span className="pill">{tx.status}</span></td><td className={'right amount ' + (tx.direction === 'credit' ? 'positive' : '')}>{tx.direction === 'debit' ? '−' : tx.direction === 'credit' ? '+' : ''}{money(tx.amount_minor, tx.currency || 'USD')}</td></tr>)}</tbody></table></div>
 }
 
-function Overview({ profile, customerAccount, accounts, transactions, setPage }) {
+function Overview({ profile, customerAccount, accounts, transactions, wallet, setPage }) {
   const knownBalances = accounts.filter(account => account.balance_minor !== null && account.balance_minor !== undefined)
   const firstName = profile?.full_name?.trim().split(/\s+/)[0] || 'there'
   const currencies = [...new Set(knownBalances.map(account => account.currency || 'USD'))]
   return <main className="container app-page">
     <Title eyebrow="CUSTOMER OVERVIEW" title={'Welcome, ' + firstName} description="Your customer records and internal application activity." />
     <div className="stats">
-      <article className="balance-card"><span>Available balance</span><strong>{knownBalances.length ? (currencies.length > 1 ? 'Multiple currencies' : money(knownBalances.reduce((sum, a) => sum + Number(a.balance_minor), 0), currencies[0])) : '$0.00'}</strong><small>{knownBalances.length ? 'Latest provider-reported balance' : 'Displayed default balance'}</small></article>
+      <article className="balance-card"><span>Total available balance</span><strong>{wallet ? money(wallet.balance_minor, wallet.currency || 'USD') : 'Balance unavailable'}</strong><small>{wallet ? 'Calculated from completed internal wallet transactions' : 'Your internal wallet balance could not be loaded'}</small></article>
       <article className="stat"><span className="service-icon"><Icon name="wallet" /></span><small>Linked bank accounts</small><strong>{accounts.length}</strong><span className="muted">Provider-linked records only</span></article>
       <article className="stat"><span className="service-icon"><Icon name="history" /></span><small>Transaction records</small><strong>{transactions.length}</strong><span className="muted">Provider-reported activity only</span></article>
     </div>
@@ -583,7 +583,7 @@ export default function App() {
 
   return <div className="app-shell"><CustomerHeader page={page} setPage={setPage} user={session.user} signOut={signOut} onRefresh={loadCustomerData} refreshing={dataLoading} />
     {dataError && <div className="container"><p className="error" role="alert">Unable to load account data: {dataError}. Use Refresh data to retry, or contact support if the problem continues.</p></div>}
-    {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'wallet' ? <Wallet wallet={wallet} onRefresh={loadCustomerData} refreshing={dataLoading} setPage={setPage} /> : page === 'transactions' ? <Transactions transactions={allTransactions} /> : page === 'transfers' ? <Transfers userId={session.user.id} notificationSettings={transferNotification} onTransferComplete={loadCustomerData} onRefresh={loadCustomerData} refreshing={dataLoading} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={allTransactions} setPage={setPage} />}
+    {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'wallet' ? <Wallet wallet={wallet} onRefresh={loadCustomerData} refreshing={dataLoading} setPage={setPage} /> : page === 'transactions' ? <Transactions transactions={allTransactions} /> : page === 'transfers' ? <Transfers userId={session.user.id} notificationSettings={transferNotification} onTransferComplete={loadCustomerData} onRefresh={loadCustomerData} refreshing={dataLoading} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={allTransactions} wallet={wallet} setPage={setPage} />}
     <SupportWidget user={session.user} />
     <footer className="footer"><div className="container footer-bottom"><span>Wells Fargo Bank</span></div></footer>
   </div>
