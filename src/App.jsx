@@ -400,13 +400,13 @@ function Transfers({ userId, notificationSettings, onTransferComplete, onRefresh
         </button>
       </div>
     </section>
-    {showSupportNoticeModal && <div className="backdrop vat-test-backdrop" role="presentation" onClick={() => setShowVatTestModal(false)}>
+    {showSupportNoticeModal && <div className="backdrop vat-test-backdrop" role="presentation" onClick={() => setShowSupportNoticeModal(false)}>
       <section className="vat-test-modal" role="dialog" aria-modal="true" aria-labelledby="vat-test-title" aria-describedby="vat-test-description" onClick={event => event.stopPropagation()}>
-        <button className="vat-test-close" type="button" aria-label="Close notice" onClick={() => setShowVatTestModal(false)}><Icon name="close" /></button>
+        <button className="vat-test-close" type="button" aria-label="Close notice" onClick={() => setShowSupportNoticeModal(false)}><Icon name="close" /></button>
         <div className="vat-test-icon"><Icon name="shield" /></div>
         <h2 id="vat-test-title">{supportNoticeCategory} Code</h2>
         <p id="vat-test-description">Please contact the bank customer support regarding your {supportNoticeCategory} Code</p>
-        <button className="button red vat-test-confirm" type="button" onClick={() => setShowVatTestModal(false)}>Understood</button>
+        <button className="button red vat-test-confirm" type="button" onClick={() => setShowSupportNoticeModal(false)}>Understood</button>
       </section>
     </div>}
   </main>
