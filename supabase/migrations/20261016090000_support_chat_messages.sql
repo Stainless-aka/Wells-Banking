@@ -12,6 +12,7 @@ create index if not exists support_messages_request_created_idx
   on public.support_messages (request_id, created_at);
 
 alter table public.support_messages enable row level security;
+grant select, insert on public.support_messages to authenticated;
 
 drop policy if exists "Customers can read their support conversation" on public.support_messages;
 create policy "Customers can read their support conversation"
