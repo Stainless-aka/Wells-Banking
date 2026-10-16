@@ -307,7 +307,7 @@ function Transfers({ userId, notificationSettings, onTransferComplete, onRefresh
       if (insertError) throw insertError
 
       if (mode === 'support') {
-        setMessage(`Please contact customer support regarding your ${category} enquiry.`)
+        setMessage(category === "VAT" ? "VAT Code" : `Please contact customer support regarding your ${category} enquiry.`)
       } else if (mode === 'review') {
         setMessage('Your transfer request has been recorded for review.')
       } else {
