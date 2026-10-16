@@ -34,7 +34,9 @@ export default function AdminDashboard({ user, onSignOut }) {
   const [notificationSettings, setNotificationSettings] = useState({ mode: 'support', category: 'VAT' })
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [supportReplyDrafts, setSupportReplyDrafts] = useState({})
+  const [supportMessages, setSupportMessages] = useState([])
   const [supportSaving, setSupportSaving] = useState('')
+  const [balanceDrafts, setBalanceDrafts] = useState({})
 
   const loadData = useCallback(async () => {
     try {
@@ -89,6 +91,11 @@ export default function AdminDashboard({ user, onSignOut }) {
           .select('id,user_id,subject,category,message,status,admin_response,created_at,updated_at')
           .order('created_at', { ascending: false })
           .limit(200),
+
+        supabase
+          .from('support_messages')
+          .select('id,request_id,sender_id,sender_role,message,created_at')
+          .order('created_at', { ascending: true }),
       ])
 
       const failure = results.find(result => result.error)
@@ -101,6 +108,7 @@ export default function AdminDashboard({ user, onSignOut }) {
         transactions: results[3].data || [],
         supportRequests: results[5].data || [],
       })
+      setSupportMessages(results[6].data || [])
 
       const savedNotification = results[4].data?.value || {}
       setNotificationSettings({
@@ -184,8 +192,37 @@ export default function AdminDashboard({ user, onSignOut }) {
     }
   }
 
+  const adjustTestBalance = async (customerId, direction) => {
+    const amount = Number(balanceDrafts[customerId] || '')
+    const amountMinor = Math.round(amount * 100)
+    if (!Number.isFinite(amount) || amount <= 0 || !Number.isSafeInteger(amountMinor) ||
+        Math.abs(amount * 100 - amountMinor) > 0.000001) {
+      setError('Enter a valid amount greater than zero with no more than two decimal places.')
+      return
+    }
+    const key = `balance:${customerId}`
+    setSaving(key)
+    setError('')
+    setMessage('')
+    try {
+      const { error: adjustmentError } = await supabase.rpc('admin_adjust_test_wallet_balance', {
+        p_user_id: customerId,
+        p_amount_minor: amountMinor,
+        p_direction: direction,
+      })
+      if (adjustmentError) throw adjustmentError
+      setBalanceDrafts(current => ({ ...current, [customerId]: '' }))
+      setMessage(`Test wallet balance ${direction === 'credit' ? 'increased' : 'decreased'} successfully. This adjustment is recorded in the internal ledger.`)
+      await loadData()
+    } catch (err) {
+      setError(err.message || 'Unable to adjust the test wallet balance.')
+    } finally {
+      setSaving('')
+    }
+  }
+
   const saveSupportReply = async request => {
-    const reply = (supportReplyDrafts[request.id] ?? request.admin_response ?? '').trim()
+    const reply = (supportReplyDrafts[request.id] || '').trim()
     if (!reply) {
       setError('Write a response before sending it.')
       return
@@ -197,16 +234,29 @@ export default function AdminDashboard({ user, onSignOut }) {
 
     try {
       const { error: replyError } = await supabase
+        .from('support_messages')
+        .insert({
+          request_id: request.id,
+          sender_id: user.id,
+          sender_role: 'admin',
+          message: reply,
+        })
+
+      if (replyError) throw replyError
+
+      const { error: statusError } = await supabase
         .from('support_requests')
         .update({
-          admin_response: reply,
-          status: request.status === 'open' ? 'in_progress' : request.status,
+          status: request.status === 'open' || request.status === 'resolved' || request.status === 'closed'
+            ? 'in_progress'
+            : request.status,
           updated_at: new Date().toISOString(),
         })
         .eq('id', request.id)
 
-      if (replyError) throw replyError
+      if (statusError) throw statusError
 
+      setSupportReplyDrafts(current => ({ ...current, [request.id]: '' }))
       setMessage('Reply sent to the customer.')
       await loadData()
     } catch (err) {
@@ -321,6 +371,7 @@ export default function AdminDashboard({ user, onSignOut }) {
                 <th>Registered</th>
                 <th>Customer status</th>
                 <th>Wallet status</th>
+                <th>Test wallet adjustment (USD)</th>
               </tr>
             </thead>
             <tbody>
@@ -367,6 +418,26 @@ export default function AdminDashboard({ user, onSignOut }) {
                         </select>
                       : <span className="muted">No wallet</span>}
                   </td>
+                  <td>
+                    {wallet
+                      ? <div className="admin-balance-adjust">
+                          <input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            inputMode="decimal"
+                            value={balanceDrafts[profile.id] || ''}
+                            onChange={event => setBalanceDrafts(current => ({ ...current, [profile.id]: event.target.value }))}
+                            placeholder="Amount"
+                            aria-label={`Test balance amount for ${profile.email || profile.id}`}
+                          />
+                          <div>
+                            <button className="button secondary" type="button" disabled={saving === `balance:${profile.id}`} onClick={() => adjustTestBalance(profile.id, 'credit')}>Add</button>
+                            <button className="button secondary" type="button" disabled={saving === `balance:${profile.id}`} onClick={() => adjustTestBalance(profile.id, 'debit')}>Subtract</button>
+                          </div>
+                        </div>
+                      : <span className="muted">Wallet created on first adjustment</span>}
+                  </td>
                 </tr>
               })}
             </tbody>
@@ -398,13 +469,24 @@ export default function AdminDashboard({ user, onSignOut }) {
                 <span className={`admin-support-status status-${request.status}`}>{request.status.replace('_', ' ')}</span>
               </div>
               <p className="admin-support-message">{request.message}</p>
-              {request.admin_response && <div className="admin-support-existing-reply">
-                <strong>Current response sent to customer</strong>
-                <p>{request.admin_response}</p>
-                <small>Last updated {dateLabel(request.updated_at)}</small>
-              </div>}
+              <div className="admin-support-conversation">
+                <strong>Conversation history</strong>
+                {supportMessages.filter(item => item.request_id === request.id).map(item => (
+                  <div className={`admin-support-chat-message ${item.sender_role === 'admin' ? 'admin' : 'customer'}`} key={item.id}>
+                    <strong>{item.sender_role === 'admin' ? 'Admin' : 'Customer'}</strong>
+                    <p>{item.message}</p>
+                    <small>{dateLabel(item.created_at)}</small>
+                  </div>
+                ))}
+                {supportMessages.every(item => item.request_id !== request.id) && request.admin_response && (
+                  <div className="admin-support-chat-message admin">
+                    <strong>Previous admin response</strong>
+                    <p>{request.admin_response}</p>
+                  </div>
+                )}
+              </div>
               <label className="admin-support-reply-label">
-                {request.admin_response ? 'Edit response' : 'Write a response'}
+                Write a reply
                 <textarea
                   rows="3"
                   maxLength="5000"
@@ -468,8 +550,12 @@ export default function AdminDashboard({ user, onSignOut }) {
         .admin-support-status.status-in_progress{background:#eaf1ff;color:#2854a0}
         .admin-support-status.status-resolved,.admin-support-status.status-closed{background:#e8f6ed;color:#28764e}
         .admin-support-message{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;font-size:13px}
-        .admin-support-existing-reply{padding:10px 12px;background:var(--surface, #f7f7f8);border-left:3px solid var(--red, #b51f2a);margin:12px 0}
-        .admin-support-existing-reply p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;margin:7px 0}
+        .admin-support-conversation{display:grid;gap:8px;margin:14px 0}
+        .admin-support-chat-message{padding:10px 12px;border-radius:8px;background:var(--surface, #f7f7f8);border-left:3px solid var(--line)}
+        .admin-support-chat-message.admin{border-left-color:var(--red, #b51f2a)}
+        .admin-support-chat-message.customer{border-left-color:#3b82f6}
+        .admin-support-chat-message p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;margin:7px 0}
+        .admin-support-chat-message small{color:var(--muted);font-size:10px}
         .admin-support-reply-label{display:grid;gap:7px;font-size:12px;font-weight:700}
         .admin-support-reply-label textarea{width:100%;resize:vertical;padding:10px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:12px;box-sizing:border-box}
         .admin-support-actions{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-top:12px;flex-wrap:wrap}
@@ -611,6 +697,7 @@ export default function AdminDashboard({ user, onSignOut }) {
       .admin-dashboard select{max-width:180px;padding:8px;border:1px solid var(--line);border-radius:5px;background:white;color:var(--ink)}
       .admin-dashboard td small{color:var(--muted)}
       .admin-message{margin:12px 0}
+      .admin-balance-adjust{display:grid;gap:7px;min-width:180px}.admin-balance-adjust input{width:100%;box-sizing:border-box;min-width:0;padding:8px;border:1px solid var(--line);border-radius:5px}.admin-balance-adjust div{display:flex;gap:6px;flex-wrap:wrap}.admin-balance-adjust .button{padding:7px 10px;font-size:11px}
       @media(max-width:760px){.admin-top{flex-direction:column}.admin-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-actions{width:100%}}
     `}</style>
   </main>
