@@ -38,8 +38,12 @@ export default function AdminDashboard({ user, onSignOut }) {
       const { data: allowed, error: accessError } =
         await supabase.rpc('is_app_admin')
 
+<<<<<<< HEAD
       // Wait for the access check before updating React state. This avoids
       // synchronous state updates from the effect that starts the initial load.
+=======
+      // Update loading state after the administrator-access check resolves.
+>>>>>>> fd0ec22 (changes)
       setLoading(true)
       setError('')
 
@@ -108,7 +112,11 @@ export default function AdminDashboard({ user, onSignOut }) {
   }, [])
 
   useEffect(() => {
-    loadData()
+    const timer = setTimeout(() => {
+      loadData()
+    }, 0)
+
+    return () => clearTimeout(timer)
   }, [loadData])
 
   const profilesById = useMemo(

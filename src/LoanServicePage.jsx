@@ -1,0 +1,321 @@
+import { useCallback, useEffect, useState } from 'react'
+import { supabase } from './lib/supabase'
+import CustomerHeader from './CustomerHeader'
+import './LoanServicePage.css'
+
+const serviceConfig = {
+  '/services/home-mortgage': {
+    title: 'Home Mortgage',
+    intro: 'Explore home financing options and submit your details for a mortgage consultation.',
+    type: 'home_mortgage',
+    purposeLabel: 'Property or home-buying details',
+    fields: ['propertyValue', 'propertyLocation'],
+  },
+  '/services/mortgage-refinance': {
+    title: 'Mortgage Refinance',
+    intro: 'Share your refinancing goals so the team can review your inquiry.',
+    type: 'mortgage_refinance',
+    purposeLabel: 'Refinancing goals',
+    fields: ['propertyValue', 'propertyLocation'],
+  },
+  '/services/personal-loans': {
+    title: 'Personal Loans',
+    intro: 'Describe your financing needs and the amount you would like to discuss.',
+    type: 'personal_loan',
+    purposeLabel: 'Purpose of the loan',
+    fields: [],
+  },
+  '/services/auto-loans': {
+    title: 'Auto Loans',
+    intro: 'Share vehicle and financing details for an auto-loan consultation.',
+    type: 'auto_loan',
+    purposeLabel: 'Vehicle and financing purpose',
+    fields: ['vehicleYear', 'vehicleMake', 'vehicleModel'],
+  },
+  '/services/student-loans': {
+    title: 'Student Loans',
+    intro: 'Tell us about your education plans and funding needs.',
+    type: 'student_loan',
+    purposeLabel: 'Education funding purpose',
+    fields: ['schoolName', 'programName'],
+  },
+}
+
+const inquiryStatuses = {
+  submitted: 'Submitted',
+  under_review: 'Under review',
+  contacted: 'Contacted',
+  approved: 'Approved',
+  declined: 'Declined',
+  closed: 'Closed',
+}
+
+const dateLabel = value => value
+  ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(value))
+  : '—'
+
+const money = minor => new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+}).format(Number(minor || 0) / 100)
+
+export default function LoanServicePage() {
+  const path = window.location.pathname.replace(/\/+$/, '')
+  const config = serviceConfig[path] || serviceConfig['/services/personal-loans']
+  const [session, setSession] = useState(null)
+  const [sessionLoading, setSessionLoading] = useState(true)
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [amount, setAmount] = useState('')
+  const [purpose, setPurpose] = useState('')
+  const [details, setDetails] = useState({})
+  const [inquiries, setInquiries] = useState([])
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+
+  const loadInquiries = useCallback(async (userId) => {
+    if (!userId) {
+      setInquiries([])
+      return
+    }
+    const { data, error: loadError } = await supabase
+      .from('loan_inquiries')
+      .select('id,loan_type,requested_amount_minor,currency,status,created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(25)
+
+    if (loadError) {
+      setError(loadError.message || 'Unable to load your inquiries.')
+      return
+    }
+    setInquiries(data || [])
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    supabase.auth.getSession().then(({ data, error: authError }) => {
+      if (!active) return
+      if (authError) setError(authError.message)
+      const nextSession = data?.session || null
+      setSession(nextSession)
+      setFullName(nextSession?.user?.user_metadata?.full_name || '')
+      setEmail(nextSession?.user?.email || '')
+      setSessionLoading(false)
+    })
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!active) return
+      setSession(nextSession)
+      setFullName(current => current || nextSession?.user?.user_metadata?.full_name || '')
+      setEmail(current => current || nextSession?.user?.email || '')
+      setSessionLoading(false)
+    })
+    return () => {
+      active = false
+      listener.subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!session?.user?.id) return
+    let active = true
+
+    const fetchInquiries = async () => {
+      const { data, error: loadError } = await supabase
+        .from('loan_inquiries')
+        .select('id,loan_type,requested_amount_minor,currency,status,created_at')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(25)
+
+      if (!active) return
+      if (loadError) {
+        setError(loadError.message || 'Unable to load your inquiries.')
+        return
+      }
+      setInquiries(data || [])
+    }
+
+    fetchInquiries()
+    return () => { active = false }
+  }, [session?.user?.id])
+
+  const updateDetail = (key, value) => {
+    setDetails(current => ({ ...current, [key]: value }))
+  }
+
+  const submit = async event => {
+    event.preventDefault()
+    setError('')
+    setMessage('')
+
+    if (!session?.user?.id) {
+      setError('Sign in to submit and track a loan inquiry.')
+      return
+    }
+
+    const amountNumber = Number(amount)
+    if (!Number.isFinite(amountNumber) || amountNumber < 1) {
+      setError('Enter an amount of at least $1.00.')
+      return
+    }
+
+    setBusy(true)
+    try {
+      const { data, error: submitError } = await supabase
+        .from('loan_inquiries')
+        .insert({
+          user_id: session.user.id,
+          loan_type: config.type,
+          full_name: fullName.trim(),
+          email: email.trim(),
+          phone: phone.trim() || null,
+          requested_amount_minor: Math.round(amountNumber * 100),
+          currency: 'USD',
+          purpose: purpose.trim(),
+          details,
+        })
+        .select('id,status,created_at')
+        .single()
+
+      if (submitError) throw submitError
+
+      setMessage(`Your inquiry was submitted successfully. Reference: ${data.id.slice(0, 8).toUpperCase()}.`)
+      setAmount('')
+      setPurpose('')
+      setDetails({})
+      await loadInquiries(session.user.id)
+    } catch (submitError) {
+      setError(submitError.message || 'Unable to submit your inquiry. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const detailLabels = {
+    propertyValue: ['Estimated property value (USD)', 'number'],
+    propertyLocation: ['Property city / state', 'text'],
+    vehicleYear: ['Vehicle year', 'number'],
+    vehicleMake: ['Vehicle make', 'text'],
+    vehicleModel: ['Vehicle model', 'text'],
+    schoolName: ['School or institution', 'text'],
+    programName: ['Program or course of study', 'text'],
+  }
+
+  return <main className="loan-page">
+    <CustomerHeader
+      loanPage
+      user={session?.user}
+      signOut={async () => {
+        const { error: signOutError } = await supabase.auth.signOut()
+        if (signOutError) {
+          setError(signOutError.message)
+          return
+        }
+        window.location.href = '/login'
+      }}
+      onRefresh={session?.user ? loadInquiries : undefined}
+    />
+
+    <section className="loan-hero">
+      <span className="loan-eyebrow">FINANCING SERVICES</span>
+      <h1>{config.title}</h1>
+      <p>{config.intro}</p>
+      <div className="loan-benefits">
+        <span>Secure inquiry submission</span>
+        <span>Track your request</span>
+        <span>Personal follow-up</span>
+      </div>
+    </section>
+
+    <section className="loan-content">
+      <div className="loan-form-card">
+        <span className="loan-eyebrow">CUSTOMER INQUIRY</span>
+        <h2>Tell us what you need</h2>
+        <p>Complete the form to submit your inquiry for review.</p>
+
+        {sessionLoading
+          ? <p>Checking your account…</p>
+          : !session
+            ? <div className="loan-signin">
+                <p>Sign in to submit a request and track its status in your account.</p>
+                <a className="loan-button" href="/login">Sign in to continue</a>
+              </div>
+            : <form className="loan-form" onSubmit={submit}>
+                <label>Full name
+                  <input value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" minLength={2} maxLength={150} required />
+                </label>
+                <label>Email address
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" maxLength={254} required />
+                </label>
+                <label>Phone number
+                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} autoComplete="tel" minLength={7} maxLength={30} />
+                </label>
+                <label>Requested amount (USD)
+                  <input type="number" value={amount} onChange={e => setAmount(e.target.value)} min="1" max="1000000000" step="0.01" inputMode="decimal" required />
+                </label>
+
+                {config.fields.map(key => {
+                  const [label, type] = detailLabels[key]
+                  return <label key={key}>{label}
+                    <input
+                      type={type}
+                      value={details[key] || ''}
+                      onChange={e => updateDetail(key, e.target.value)}
+                      min={type === 'number' ? 1900 : undefined}
+                      max={type === 'number' && key === 'vehicleYear' ? new Date().getFullYear() + 2 : undefined}
+                      maxLength={type === 'text' ? 160 : undefined}
+                    />
+                  </label>
+                })}
+
+                <label>{config.purposeLabel}
+                  <textarea value={purpose} onChange={e => setPurpose(e.target.value)} minLength={3} maxLength={1000} rows={4} required />
+                </label>
+
+                {error && <p className="loan-error" role="alert">{error}</p>}
+                {message && <p className="loan-success" role="status">{message}</p>}
+
+                <button className="loan-button" type="submit" disabled={busy}>
+                  {busy ? 'Submitting…' : 'Submit inquiry'}
+                </button>
+              </form>}
+
+        {error && !session && <p className="loan-error" role="alert">{error}</p>}
+        <p className="loan-legal">Submitting an inquiry does not guarantee a loan offer or approval. Do not include passwords, account numbers, or government identification numbers in this form.</p>
+      </div>
+
+      <aside className="loan-side-card">
+        <h2>How it works</h2>
+        <ol>
+          <li><strong>Submit your details.</strong><span>Provide your contact information and financing needs.</span></li>
+          <li><strong>Inquiry review.</strong><span>Your request appears in the customer-service workflow.</span></li>
+          <li><strong>Follow-up.</strong><span>Track status changes from your account and follow up with the service team.</span></li>
+        </ol>
+        <p className="loan-legal">Independent financial-services interface. Bank affiliation and lending eligibility should be verified before sharing financial information.</p>
+      </aside>
+    </section>
+
+    {session && <section className="loan-history">
+      <div className="loan-history-heading">
+        <div><span className="loan-eyebrow">ACCOUNT ACTIVITY</span><h2>Your loan inquiries</h2></div>
+        <button type="button" className="loan-refresh" onClick={loadInquiries}>Refresh</button>
+      </div>
+      {inquiries.length
+        ? <div className="loan-table-wrap"><table>
+            <thead><tr><th>Service</th><th>Amount</th><th>Submitted</th><th>Status</th></tr></thead>
+            <tbody>{inquiries.map(item => <tr key={item.id}>
+              <td>{item.loan_type.replaceAll('_', ' ').replace(/\b\w/g, char => char.toUpperCase())}</td>
+              <td>{money(item.requested_amount_minor)}</td>
+              <td>{dateLabel(item.created_at)}</td>
+              <td><span className={`loan-status loan-status-${item.status}`}>{inquiryStatuses[item.status] || item.status}</span></td>
+            </tr>)}</tbody>
+          </table></div>
+        : <p className="loan-empty">Your submitted inquiries will appear here.</p>}
+    </section>}
+
+    <footer className="footer"><div className="container footer-bottom"><span>Wells Fargo Bank</span><span>Customer services</span></div></footer>
+  </main>
+}

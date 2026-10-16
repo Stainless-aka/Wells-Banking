@@ -25,3 +25,47 @@
 /* Internal transfer workflow */
 .transfer-panel{max-width:760px}.transfer-fields{max-width:620px}.transfer-fields .button{align-self:flex-start;min-height:44px;padding:0 24px}.account-number{font-size:clamp(16px,2vw,23px)!important;letter-spacing:.5px;overflow-wrap:anywhere}.demo-alert{line-height:1.7}.demo-alert strong{display:inline-block;margin-right:4px}
 @media(max-width:760px){.transfer-fields .button{width:100%}.account-number{font-size:18px!important}}
+
+/* Shared customer header: keep the brand clean on every page. */
+.brand{text-decoration:none;cursor:pointer}
+
+/* Shared customer navigation: consistent links across dashboard and loan pages. */
+.site-header .nav a.nav-link,
+.site-header .nav a.nav-link:visited,
+.site-header .nav a.nav-link:hover,
+.site-header .nav a.nav-link:focus {
+  text-decoration: none;
+}
+
+.site-header .nav a.nav-link {
+  color: #4b4c52;
+}
+
+.site-header .nav a.nav-link:hover {
+  color: var(--red);
+}
+
+/* Loan pages should never show the dashboard's active underline. */
+.site-header .nav a.nav-link.active::after {
+  display: none;
+}
+
+/* Keep the expanded mobile menu compact and above page content. */
+@media (max-width: 760px) {
+  .site-header .nav.open {
+    max-height: min(70vh, 560px);
+    overflow-y: auto;
+    padding: 8px 20px 14px;
+    box-shadow: 0 14px 20px #0000000f;
+  }
+
+  .site-header .nav.open a.nav-link {
+    display: block;
+    padding: 11px 4px;
+    text-decoration: none;
+  }
+
+  .site-header .nav.open a.nav-link.active {
+    color: #4b4c52;
+  }
+}

@@ -6,6 +6,7 @@ create table if not exists public.app_settings (
 );
 
 alter table public.app_settings enable row level security;
+<<<<<<< HEAD
 grant select, insert, update on public.app_settings to authenticated;
 
 drop policy if exists "Authenticated users can read transfer notification setting"
@@ -22,9 +23,45 @@ create policy "Admins can insert app settings"
 drop policy if exists "Admins can update app settings" on public.app_settings;
 create policy "Admins can update app settings"
   on public.app_settings for update to authenticated
+=======
+
+grant select, insert, update
+on public.app_settings to authenticated;
+
+drop policy if exists
+  "Authenticated users can read transfer notification setting"
+  on public.app_settings;
+
+create policy "Authenticated users can read transfer notification setting"
+  on public.app_settings
+  for select to authenticated
+  using (key = 'transfer_notification');
+
+drop policy if exists "Admins can insert app settings"
+  on public.app_settings;
+
+create policy "Admins can insert app settings"
+  on public.app_settings
+  for insert to authenticated
+  with check (public.is_app_admin());
+
+drop policy if exists "Admins can update app settings"
+  on public.app_settings;
+
+create policy "Admins can update app settings"
+  on public.app_settings
+  for update to authenticated
+>>>>>>> fd0ec22 (changes)
   using (public.is_app_admin())
   with check (public.is_app_admin());
 
 insert into public.app_settings (key, value)
+<<<<<<< HEAD
 values ('transfer_notification', '{"mode":"support","category":"VAT"}'::jsonb)
+=======
+values (
+  'transfer_notification',
+  '{"mode":"support","category":"VAT"}'::jsonb
+)
+>>>>>>> fd0ec22 (changes)
 on conflict (key) do nothing;

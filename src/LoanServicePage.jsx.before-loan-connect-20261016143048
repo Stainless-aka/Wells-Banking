@@ -1,0 +1,201 @@
+import './LandingPage.css'
+
+const loanServices = {
+  '/services/home-mortgage': {
+    title: 'Home Mortgage / Refinance',
+    eyebrow: 'HOME FINANCING',
+    intro: 'Explore information about financing a home purchase or refinancing an existing mortgage.',
+    sections: [
+      {
+        title: 'Home purchase financing',
+        text: 'Understand the general costs of buying a home, including a down payment, closing costs, interest, and ongoing housing expenses.',
+      },
+      {
+        title: 'Mortgage refinancing',
+        text: 'Learn how borrowers compare a potential new loan with an existing mortgage, considering interest rates, fees, loan term, and total cost.',
+      },
+      {
+        title: 'What to prepare',
+        text: 'Common preparation items include income records, a review of existing debts, credit information, and an estimate of housing expenses.',
+      },
+    ],
+    faqs: [
+      ['What is refinancing?', 'Refinancing replaces an existing mortgage with a new loan. Whether it is beneficial depends on costs, terms, and individual circumstances.'],
+      ['Are rates or approvals provided here?', 'No. This informational prototype does not provide live rates, eligibility decisions, or mortgage approvals.'],
+    ],
+  },
+  '/services/personal-loans': {
+    title: 'Personal Loans',
+    eyebrow: 'PERSONAL BORROWING',
+    intro: 'Explore personal loan concepts and the costs to consider before borrowing.',
+    sections: [
+      {
+        title: 'Understand the loan cost',
+        text: 'Compare the interest rate, annual percentage rate where applicable, fees, repayment term, monthly payment, and total amount repayable.',
+      },
+      {
+        title: 'Plan your repayment',
+        text: 'Consider your income, essential expenses, existing debt obligations, and how a new payment would fit your budget.',
+      },
+      {
+        title: 'Compare alternatives',
+        text: 'Review the terms of available options carefully. Borrow only what you need and avoid relying on an unverified offer.',
+      },
+    ],
+    faqs: [
+      ['How much could I borrow?', 'Loan amounts and eligibility vary by lender and applicant. This prototype cannot calculate or confirm an offer.'],
+      ['Does this page submit an application?', 'No. This page provides general information and does not submit a loan application.'],
+    ],
+  },
+  '/services/auto-loans': {
+    title: 'Auto Loans',
+    eyebrow: 'VEHICLE FINANCING',
+    intro: 'Explore vehicle financing considerations before choosing a loan or repayment term.',
+    sections: [
+      {
+        title: 'Estimate the full vehicle cost',
+        text: 'Consider the vehicle price, down payment, taxes, registration, insurance, maintenance, and any trade-in value.',
+      },
+      {
+        title: 'Compare loan terms',
+        text: 'A longer term may reduce the monthly payment while increasing the total interest paid. Compare the APR, fees, and total repayment amount.',
+      },
+      {
+        title: 'Prepare your information',
+        text: 'You may want to review your budget, vehicle details, income information, and existing financial obligations before contacting a lender.',
+      },
+    ],
+    faqs: [
+      ['Can I check an auto-loan rate here?', 'No live rates, lender offers, or eligibility checks are available on this prototype page.'],
+      ['Does this page finance a vehicle?', 'No. Vehicle financing is not initiated or approved through this informational page.'],
+    ],
+  },
+  '/services/student-loans': {
+    title: 'Student Loans',
+    eyebrow: 'EDUCATION FINANCING',
+    intro: 'Explore education financing considerations and the importance of understanding repayment obligations.',
+    sections: [
+      {
+        title: 'Understand your options',
+        text: 'Compare applicable federal, private, institutional, scholarship, grant, and other funding options. Availability depends on your location and circumstances.',
+      },
+      {
+        title: 'Review the terms',
+        text: 'Before borrowing, review interest, fees, repayment commencement, deferment conditions, available protections, and the total cost.',
+      },
+      {
+        title: 'Plan for repayment',
+        text: 'Estimate future payments against a realistic budget and expected income. Do not assume future forgiveness or employment eligibility.',
+      },
+    ],
+    faqs: [
+      ['Are student loans available through this page?', 'No loan products are offered or originated by this informational prototype.'],
+      ['Where should I verify eligibility?', 'Check the official education funding authority or lender responsible for the program in your jurisdiction.'],
+    ],
+  },
+}
+
+export default function LoanServicePage() {
+  const pathname = window.location.pathname.replace(/\/+$/, '')
+  const service = loanServices[pathname]
+
+  if (!service) {
+    return (
+      <main className="loan-page">
+        <div className="loan-topbar">Independent banking interface</div>
+        <section className="loan-not-found">
+          <span className="landing-eyebrow">PAGE NOT FOUND</span>
+          <h1>This service page is unavailable.</h1>
+          <a className="landing-button landing-button-red" href="/#services">
+            Browse services →
+          </a>
+        </section>
+      </main>
+    )
+  }
+
+  return (
+    <main className="loan-page">
+      <div className="loan-topbar">Independent banking interface · Informational prototype</div>
+      <header className="loan-header">
+        <a className="landing-brand" href="/" aria-label="Return to home">
+          <span className="landing-brand-mark">W</span>
+          <span className="landing-brand-copy">
+            <strong>Wells Fargo Bank</strong>
+            <small>ACCOUNT SERVICES</small>
+          </span>
+        </a>
+        <nav className="loan-nav" aria-label="Service navigation">
+          <a href="/#services">All services</a>
+          <a href="/login">Sign in</a>
+        </nav>
+      </header>
+
+      <section className="loan-hero">
+        <div className="loan-hero-copy">
+          <span className="landing-eyebrow">{service.eyebrow}</span>
+          <h1>{service.title}</h1>
+          <p>{service.intro}</p>
+          <div className="landing-actions">
+            <a className="landing-button landing-button-red" href="/#services">
+              Browse all services →
+            </a>
+            <a className="landing-button landing-button-outline" href="/login">
+              Account sign in
+            </a>
+          </div>
+        </div>
+        <aside className="loan-summary">
+          <span className="loan-summary-symbol">◇</span>
+          <h2>Make an informed decision</h2>
+          <p>Compare costs, understand the terms, and review your budget before taking on a financial commitment.</p>
+          <small>General information only</small>
+        </aside>
+      </section>
+
+      <section className="loan-content">
+        <div className="loan-section-heading">
+          <span className="landing-eyebrow">SERVICE OVERVIEW</span>
+          <h2>Things to consider</h2>
+        </div>
+        <div className="loan-detail-grid">
+          {service.sections.map((section, index) => (
+            <article className="loan-detail-card" key={section.title}>
+              <span className="loan-detail-number">{String(index + 1).padStart(2, '0')}</span>
+              <h3>{section.title}</h3>
+              <p>{section.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="loan-faq">
+        <div className="loan-section-heading">
+          <span className="landing-eyebrow">COMMON QUESTIONS</span>
+          <h2>Frequently asked questions</h2>
+        </div>
+        {service.faqs.map(([question, answer]) => (
+          <details className="loan-faq-item" key={question}>
+            <summary>{question}</summary>
+            <p>{answer}</p>
+          </details>
+        ))}
+      </section>
+
+      <section className="loan-disclaimer">
+        <strong>About this page</strong>
+        <p>
+          This is an independent informational prototype and is not an official
+          Wells Fargo website or loan application service. It does not provide
+          live offers, collect loan applications, make credit decisions, or
+          approve financing.
+        </p>
+      </section>
+
+      <footer className="landing-footer loan-footer">
+        <a className="landing-footer-brand" href="/">Wells Fargo Bank</a>
+        <a href="/#services">Browse services ↑</a>
+      </footer>
+    </main>
+  )
+}

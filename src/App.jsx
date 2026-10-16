@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 import AdminDashboard from './AdminDashboard'
+import SupportWidget from './SupportWidget'
+import CustomerHeader from './CustomerHeader'
 import './App.css'
+import LandingPage from './LandingPage'
+import LoanServicePage from './LoanServicePage'
 
 const money = (minor, currency = 'USD') => {
   if (minor === null || minor === undefined) return 'Not available'
@@ -29,7 +33,11 @@ function Icon({ name }) {
 }
 
 function AuthForm({ onAuthenticated }) {
-  const [mode, setMode] = useState('signin')
+  const [mode, setMode] = useState(() =>
+    new URLSearchParams(window.location.search).get('mode') === 'signup'
+      ? 'signup'
+      : 'signin'
+  )
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -89,15 +97,14 @@ function AuthForm({ onAuthenticated }) {
       {mode !== 'signin' && <button onClick={() => { setMode('signin'); setError(''); setMessage('') }}>Back to sign in</button>}
     </div>
     <p className="fine"><Icon name="shield" /> Never share your password or one-time codes with anyone.</p>
+<<<<<<< HEAD
     <p className="fine">Unofficial prototype, not affiliated with or endorsed by Wells Fargo. Do not use this application for real banking.</p>
+=======
+    
+>>>>>>> fd0ec22 (changes)
   </section></main>
 }
 
-function Header({ page, setPage, user, signOut, onRefresh, refreshing }) {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const links = [['overview', 'Overview'], ['accounts', 'Accounts'], ['transactions', 'Transactions'], ['transfers', 'Transfers']]
-  return <><div className="utility"><div className="container utility-inner"><span>Customer account services</span><span><Icon name="shield" /> Secure session</span></div></div><header className="site-header"><div className="container header-inner"><Brand onClick={() => { setPage('overview'); setMenuOpen(false) }} /><button className="mobile-menu" onClick={() => setMenuOpen(open => !open)} aria-label="Toggle navigation"><span>{menuOpen ? 'Close' : 'Menu'}</span></button><nav className={menuOpen ? "nav open" : "nav"}>{links.map(([key, label]) => <button key={key} className={page === key ? 'nav-link active' : 'nav-link'} onClick={() => { setPage(key); setMenuOpen(false) }}>{label}</button>)}</nav><button className="text-link refresh-action" onClick={onRefresh} disabled={refreshing} aria-label="Refresh customer records"><Icon name="refresh" />{refreshing ? 'Refreshing…' : 'Refresh data'}</button><button className="signout" onClick={() => { setMenuOpen(false); signOut() }}><span className="avatar">{(user.email || 'U')[0].toUpperCase()}</span><span>Sign out</span><Icon name="logout" /></button></div></header></>
-}
 
 function Title({ eyebrow, title, description }) {
   return <div className="page-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div></div>
@@ -140,7 +147,7 @@ function Overview({ profile, customerAccount, accounts, transactions, setPage })
 function Accounts({ customerAccount, accounts }) {
   return <main className="container app-page"><Title eyebrow="ACCOUNT SERVICES" title="Accounts" description="Your customer record and any accounts linked by a banking provider." />
     <section className="panel"><div className="panel-heading"><div><h2>Customer account record</h2><p>Application status, not a deposit account or stored-value balance</p></div></div>
-      <div className="account-row"><span className="account-icon"><Icon name="shield" /></span><div className="account-info"><strong>Wells Fargo Bank prototype customer profile</strong><small>{customerAccount?.id || 'Customer record pending'}</small></div><div className="account-balance"><span className="pill">{customerAccount?.status || 'pending setup'}</span></div></div>
+      <div className="account-row"><span className="account-icon"><Icon name="shield" /></span><div className="account-info"><strong>Wells Fargo Bank Customer Profile</strong><small>{customerAccount?.id || 'Customer record pending'}</small></div><div className="account-balance"><span className="pill">{customerAccount?.status || 'pending setup'}</span></div></div>
     </section>
     <section className="panel"><div className="panel-heading"><div><h2>Linked bank accounts</h2><p>Only provider-created account records are shown here</p></div></div>
       {accounts.length ? <div className="account-grid">{accounts.map(account => <article className="panel detail-account" key={account.id}><span className="account-icon"><Icon name="wallet" /></span><span className="eyebrow">{account.account_type || 'Bank account'}</span><strong>{account.balance_minor == null ? 'Balance unavailable' : money(account.balance_minor, account.currency || 'USD')}</strong><small>Account ending {account.account_number_masked || 'not supplied'}</small><small>Provider: {account.provider}</small><div className="account-detail-foot"><span className="pill">{account.status}</span><span>{account.balance_as_of ? 'Updated ' + dateLabel(account.balance_as_of) : 'No balance timestamp'}</span></div></article>)}</div> : <EmptyState title="No linked bank accounts" text="No account has been provisioned by a banking provider for this customer yet." />}
@@ -158,6 +165,7 @@ function Transactions({ transactions }) {
 
 
 
+<<<<<<< HEAD
 function Transfers({
   userId,
   transferNotification,
@@ -165,6 +173,58 @@ function Transfers({
   onRefresh,
   refreshing,
 }) {
+=======
+function Wallet({ wallet, onRefresh, refreshing, setPage }) {
+  return <main className="container app-page">
+    <Title
+      eyebrow="INTERNAL WALLET"
+      title="Wallet balance"
+      description="Your internal application wallet. This is separate from any external bank account."
+    />
+    <section className="panel">
+      <div className="panel-heading">
+        <div>
+          <h2>Available wallet balance</h2>
+          <p>Calculated from completed internal ledger transactions</p>
+        </div>
+        <button className="text-link" onClick={onRefresh} disabled={refreshing}>
+          <Icon name="refresh" /> {refreshing ? 'Refreshing…' : 'Refresh'}
+        </button>
+      </div>
+      {wallet ? <>
+        <div className="balance-card">
+          <span>Internal wallet balance</span>
+          <strong>{money(wallet.balance_minor, wallet.currency || 'USD')}</strong>
+          <small></small>
+        </div>
+        <div className="account-row">
+          <span className="account-icon"><Icon name="wallet" /></span>
+          <div className="account-info">
+            <strong>Internal wallet account</strong>
+            <small className="account-number">{wallet.account_number || 'Number unavailable'}</small>
+          </div>
+          <div className="account-balance">
+            <span className="pill">{wallet.status || 'unknown'}</span>
+          </div>
+        </div>
+        <p className="fine">
+          Currency: {wallet.currency || 'USD'}. A zero balance means no completed
+          credits are recorded in this wallet.
+        </p>
+        <button className="button red" onClick={() => setPage('transfers')}>
+          Transfer to a registered user
+        </button>
+      </> : <EmptyState
+        icon="wallet"
+        title="Wallet unavailable"
+        text="The wallet could not be loaded. Refresh the data or check the Supabase migration and RPC permissions."
+      />}
+    </section>
+  </main>
+}
+
+function Transfers({ userId, onTransferComplete, onRefresh, refreshing }) {
+>>>>>>> fd0ec22 (changes)
   const [fullName, setFullName] = useState('')
   const [bankName, setBankName] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
@@ -211,8 +271,14 @@ function Transfers({
       setError('Complete all required fields before continuing.')
       return
     }
+<<<<<<< HEAD
     if (beneficiary.full_name.length < 2 || beneficiary.full_name.length > 150) {
       setError('Enter a valid beneficiary full name.')
+=======
+
+    if (beneficiary.full_name.length < 2 || beneficiary.full_name.length > 150) {
+      setError('Enter a valid full name.')
+>>>>>>> fd0ec22 (changes)
       return
     }
     if (beneficiary.bank_name.length > 150) {
@@ -237,15 +303,22 @@ function Transfers({
     }
 
     const numericAmount = Number(amount)
-    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-      setError('Enter an amount greater than zero.')
-      return
-    }
     const amountMinor = Math.round(numericAmount * 100)
+<<<<<<< HEAD
     if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) {
       setError('Enter an amount with no more than two decimal places.')
       return
     }
+=======
+
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0 ||
+        !Number.isSafeInteger(amountMinor) ||
+        Math.abs(numericAmount * 100 - amountMinor) > 0.000001) {
+      setError('Enter a valid amount greater than zero, with no more than two decimal places.')
+      return
+    }
+
+>>>>>>> fd0ec22 (changes)
     if (!userId) {
       setError('Your session has expired. Sign in again before submitting.')
       return
@@ -253,12 +326,15 @@ function Transfers({
 
     setBusy(true)
     try {
+<<<<<<< HEAD
       const requestStatus = mode === 'support'
         ? 'support_notice'
         : mode === 'review'
           ? 'under_review'
           : 'submitted'
 
+=======
+>>>>>>> fd0ec22 (changes)
       const { error: insertError } = await supabase
         .from('beneficiary_transfer_requests')
         .insert({
@@ -266,13 +342,20 @@ function Transfers({
           ...beneficiary,
           amount_minor: amountMinor,
           currency: 'USD',
+<<<<<<< HEAD
           notification_mode: mode,
           notification_category: category,
           request_status: requestStatus,
+=======
+          notification_mode: 'normal',
+          notification_category: 'VAT',
+          request_status: 'submitted',
+>>>>>>> fd0ec22 (changes)
         })
 
       if (insertError) throw insertError
 
+<<<<<<< HEAD
       if (mode === 'support') {
         setMessage(
           `Please contact customer support regarding your ${category} enquiry. ` +
@@ -294,6 +377,22 @@ function Transfers({
       await onTransferComplete()
     } catch (err) {
       setError(err?.message || 'Unable to save your simulated transfer request. Please try again.')
+=======
+      setMessage(
+        'Your beneficiary transfer request has been submitted for processing. ' +
+        'No real bank transfer has been initiated by this application.'
+      )
+      setFullName('')
+      setBankName('')
+      setAccountNumber('')
+      setSwiftBic('')
+      setBankAddress('')
+      setCountry('')
+      setAmount('')
+      await onTransferComplete()
+    } catch (err) {
+      setError(err?.message || 'Unable to submit the beneficiary request. Please try again.')
+>>>>>>> fd0ec22 (changes)
     } finally {
       setBusy(false)
     }
@@ -303,9 +402,14 @@ function Transfers({
     <Title
       eyebrow="TRANSFER REQUESTS"
       title="Transfer funds"
+<<<<<<< HEAD
       description="Enter the beneficiary details for a simulated transfer request."
     />
 
+=======
+      description="Enter the beneficiary bank details and amount for your transfer request."
+    />
+>>>>>>> fd0ec22 (changes)
     <section className="panel transfer-panel">
       <div className="panel-heading">
         <div>
@@ -313,6 +417,7 @@ function Transfers({
           <p>All fields are required.</p>
         </div>
       </div>
+<<<<<<< HEAD
 
       <form className="auth-fields transfer-fields" onSubmit={submit}>
         <label>
@@ -372,6 +477,63 @@ function Transfers({
         Saving a beneficiary request does not create a completed internal ledger transaction.
       </p>
     </section>
+=======
+      <form className="auth-fields transfer-fields" onSubmit={submit}>
+        <label>
+          Full Name as on bank account
+          <input value={fullName} onChange={e => setFullName(e.target.value)}
+            autoComplete="name" maxLength={150} required />
+        </label>
+        <label>
+          Bank Name
+          <input value={bankName} onChange={e => setBankName(e.target.value)}
+            maxLength={150} required />
+        </label>
+        <label>
+          Account Number
+          <input value={accountNumber} onChange={e => setAccountNumber(e.target.value)}
+            autoComplete="off" maxLength={34} required />
+        </label>
+        <label>
+          SWIFT / BIC Code
+          <input value={swiftBic}
+            onChange={e => setSwiftBic(e.target.value.toUpperCase())}
+            autoComplete="off" maxLength={11} required />
+        </label>
+        <label>
+          Bank Address
+          <input value={bankAddress} onChange={e => setBankAddress(e.target.value)}
+            maxLength={300} required />
+        </label>
+        <label>
+          Country
+          <input value={country} onChange={e => setCountry(e.target.value)}
+            autoComplete="country-name" maxLength={100} required />
+        </label>
+        <label>
+          Transfer Amount (USD)
+          <input type="number" min="0.01" step="0.01" inputMode="decimal"
+            value={amount} onChange={e => setAmount(e.target.value)} required />
+        </label>
+        {error && <p className="error" role="alert">{error}</p>}
+        {message && <p className="success" role="status">{message}</p>}
+        <button className="button red" disabled={busy}>
+          {busy ? 'Submitting request…' : 'Submit transfer request'}
+        </button>
+      </form>
+    </section>
+    <section className="panel">
+      <div className="panel-heading">
+        <div>
+          <h2>Transfer processing</h2>
+          <p>Submitting this form records a request; it does not itself move funds.</p>
+        </div>
+        <button className="text-link" onClick={onRefresh} disabled={refreshing}>
+          <Icon name="refresh" /> {refreshing ? 'Refreshing…' : 'Refresh'}
+        </button>
+      </div>
+    </section>
+>>>>>>> fd0ec22 (changes)
   </main>
 }
 
@@ -418,9 +580,13 @@ export default function App() {
   const [customerAccount, setCustomerAccount] = useState(null)
   const [accounts, setAccounts] = useState([])
   const [transactions, setTransactions] = useState([])
+<<<<<<< HEAD
   const [wallet, setWallet] = useState(null)
   const [transferNotification, setTransferNotification] = useState({ mode: 'support', category: 'VAT' })
+=======
+>>>>>>> fd0ec22 (changes)
   const [internalTransactions, setInternalTransactions] = useState([])
+  const [wallet, setWallet] = useState(null)
   const [loading, setLoading] = useState(isSupabaseConfigured)
   const [passwordRecovery, setPasswordRecovery] = useState(false)
   const [dataError, setDataError] = useState('')
@@ -454,8 +620,8 @@ export default function App() {
       setCustomerAccount(null)
       setAccounts([])
       setTransactions([])
-      setWallet(null)
       setInternalTransactions([])
+      setWallet(null)
       setDataLoading(false)
       return
     }
@@ -475,6 +641,7 @@ export default function App() {
       setProfile(profileResult.data)
       setCustomerAccount(customerResult.data)
 
+<<<<<<< HEAD
       const { data: notificationSetting, error: notificationError } = await supabase
         .from('app_settings')
         .select('value')
@@ -492,22 +659,29 @@ export default function App() {
           ? savedNotification.category
           : 'VAT',
       })
+=======
+      const { data: walletData, error: walletError } =
+        await supabase.rpc('get_my_internal_wallet')
+
+      if (walletError) throw walletError
+
+      setWallet(
+        Array.isArray(walletData) ? (walletData[0] || null) : walletData
+      )
+>>>>>>> fd0ec22 (changes)
 
       const accountRows = accountResult.data || []
       setAccounts(accountRows)
 
-      const [providerTransactionsResult, walletResult, internalTransactionsResult] = await Promise.all([
+      const [providerTransactionsResult, internalTransactionsResult] = await Promise.all([
         accountRows.length
           ? supabase.from('transactions').select('id,bank_account_id,provider,provider_transaction_id,reference,type,status,direction,amount_minor,currency,description,posted_at,created_at').in('bank_account_id', accountRows.map(account => account.id)).order('posted_at', { ascending: false, nullsFirst: false }).limit(100)
           : Promise.resolve({ data: [], error: null }),
-        supabase.rpc('get_my_internal_wallet'),
         supabase.from('internal_transactions').select('id,transfer_id,user_id,counterparty_user_id,reference,direction,amount_minor,currency,description,status,created_at').order('created_at', { ascending: false }).limit(100),
       ])
-      const transactionFailure = providerTransactionsResult.error || walletResult.error || internalTransactionsResult.error
+      const transactionFailure = providerTransactionsResult.error || internalTransactionsResult.error
       if (transactionFailure) throw transactionFailure
       setTransactions(providerTransactionsResult.data || [])
-      const walletRow = Array.isArray(walletResult.data) ? walletResult.data[0] : walletResult.data
-      setWallet(walletRow || null)
       setInternalTransactions((internalTransactionsResult.data || []).map(tx => ({
         ...tx,
         provider: 'internal',
@@ -534,15 +708,21 @@ export default function App() {
       setCustomerAccount(null)
       setAccounts([])
       setTransactions([])
-      setWallet(null)
       setInternalTransactions([])
+<<<<<<< HEAD
       setTransferNotification({ mode: 'support', category: 'VAT' })
+=======
+      setWallet(null)
+>>>>>>> fd0ec22 (changes)
       setPasswordRecovery(false)
     }
   }
 
+  if (window.location.pathname.startsWith('/services/')) return <LoanServicePage />
   if (loading) return <main className="auth-page"><section className="auth-modal auth-card"><Brand onClick={() => {}} /><p>Loading secure session…</p></section></main>
   if (passwordRecovery && session) return <PasswordRecovery onComplete={() => { setPasswordRecovery(false); setPage('overview') }} />
+  if (!session && window.location.pathname !== '/login') return <LandingPage />
+  if (!session && window.location.pathname !== '/login') return <LandingPage />
   if (!session) return <AuthForm onAuthenticated={setSession} />
   if (window.location.pathname.replace(/\/+$/, '') === '/admin') {
     return <AdminDashboard user={session.user} onSignOut={signOut} />
@@ -550,9 +730,14 @@ export default function App() {
 
   const allTransactions = [...internalTransactions, ...transactions].sort((a, b) => new Date(b.posted_at || b.created_at || 0) - new Date(a.posted_at || a.created_at || 0))
 
-  return <div className="app-shell"><Header page={page} setPage={setPage} user={session.user} signOut={signOut} onRefresh={loadCustomerData} refreshing={dataLoading} />
+  return <div className="app-shell"><CustomerHeader page={page} setPage={setPage} user={session.user} signOut={signOut} onRefresh={loadCustomerData} refreshing={dataLoading} />
     {dataError && <div className="container"><p className="error" role="alert">Unable to load account data: {dataError}. Use Refresh data to retry, or contact support if the problem continues.</p></div>}
+<<<<<<< HEAD
     {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'transactions' ? <Transactions transactions={allTransactions} /> : page === 'transfers' ? <Transfers userId={session.user.id} transferNotification={transferNotification} onTransferComplete={loadCustomerData} onRefresh={loadCustomerData} refreshing={dataLoading} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={allTransactions} setPage={setPage} />}
+=======
+    {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'wallet' ? <Wallet wallet={wallet} onRefresh={loadCustomerData} refreshing={dataLoading} setPage={setPage} /> : page === 'transactions' ? <Transactions transactions={allTransactions} /> : page === 'transfers' ? <Transfers userId={session.user.id} onTransferComplete={loadCustomerData} onRefresh={loadCustomerData} refreshing={dataLoading} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={allTransactions} setPage={setPage} />}
+    <SupportWidget user={session.user} />
+>>>>>>> fd0ec22 (changes)
     <footer className="footer"><div className="container footer-bottom"><span>Wells Fargo Bank</span></div></footer>
   </div>
 }
