@@ -24,6 +24,7 @@ export default function AdminDashboard({ user, onSignOut }) {
     accounts: [],
     wallets: [],
     transactions: [],
+    supportRequests: [],
   })
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
@@ -32,18 +33,17 @@ export default function AdminDashboard({ user, onSignOut }) {
   const [message, setMessage] = useState('')
   const [notificationSettings, setNotificationSettings] = useState({ mode: 'support', category: 'VAT' })
   const [settingsSaving, setSettingsSaving] = useState(false)
+  const [supportReplyDrafts, setSupportReplyDrafts] = useState({})
+  const [supportSaving, setSupportSaving] = useState('')
 
   const loadData = useCallback(async () => {
     try {
       const { data: allowed, error: accessError } =
         await supabase.rpc('is_app_admin')
 
-<<<<<<< HEAD
       // Wait for the access check before updating React state. This avoids
       // synchronous state updates from the effect that starts the initial load.
-=======
       // Update loading state after the administrator-access check resolves.
->>>>>>> fd0ec22 (changes)
       setLoading(true)
       setError('')
 
@@ -83,6 +83,12 @@ export default function AdminDashboard({ user, onSignOut }) {
           .select('value')
           .eq('key', 'transfer_notification')
           .maybeSingle(),
+
+        supabase
+          .from('support_requests')
+          .select('id,user_id,subject,category,message,status,admin_response,created_at,updated_at')
+          .order('created_at', { ascending: false })
+          .limit(200),
       ])
 
       const failure = results.find(result => result.error)
@@ -93,6 +99,7 @@ export default function AdminDashboard({ user, onSignOut }) {
         accounts: results[1].data || [],
         wallets: results[2].data || [],
         transactions: results[3].data || [],
+        supportRequests: results[5].data || [],
       })
 
       const savedNotification = results[4].data?.value || {}
@@ -118,6 +125,25 @@ export default function AdminDashboard({ user, onSignOut }) {
 
     return () => clearTimeout(timer)
   }, [loadData])
+
+  useEffect(() => {
+    if (access !== 'allowed') return undefined
+
+    const channel = supabase
+      .channel('admin-support-requests-live')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'support_requests',
+      }, () => {
+        loadData()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [access, loadData])
 
   const profilesById = useMemo(
     () => Object.fromEntries(data.profiles.map(profile => [profile.id, profile])),
@@ -155,6 +181,38 @@ export default function AdminDashboard({ user, onSignOut }) {
       setError(err.message || 'Unable to update status.')
     } finally {
       setSaving('')
+    }
+  }
+
+  const saveSupportReply = async request => {
+    const reply = (supportReplyDrafts[request.id] ?? request.admin_response ?? '').trim()
+    if (!reply) {
+      setError('Write a response before sending it.')
+      return
+    }
+
+    setSupportSaving(request.id)
+    setError('')
+    setMessage('')
+
+    try {
+      const { error: replyError } = await supabase
+        .from('support_requests')
+        .update({
+          admin_response: reply,
+          status: request.status === 'open' ? 'in_progress' : request.status,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', request.id)
+
+      if (replyError) throw replyError
+
+      setMessage('Reply sent to the customer.')
+      await loadData()
+    } catch (err) {
+      setError(err.message || 'Unable to send the support reply.')
+    } finally {
+      setSupportSaving('')
     }
   }
 
@@ -314,6 +372,110 @@ export default function AdminDashboard({ user, onSignOut }) {
             </tbody>
           </table>
         </div>}
+    </section>
+
+    <section className="panel admin-support-panel">
+      <div className="panel-heading">
+        <div>
+          <h2>Customer support</h2>
+          <p>{data.supportRequests.filter(request => request.status === 'open' || request.status === 'in_progress').length} request(s) need attention. Replies update the customer widget in real time.</p>
+        </div>
+      </div>
+
+      {!data.supportRequests.length
+        ? <p className="muted">No customer support requests yet.</p>
+        : <div className="admin-support-list">
+          {data.supportRequests.map(request => {
+            const customer = profilesById[request.user_id]
+            const draft = supportReplyDrafts[request.id] ?? request.admin_response ?? ''
+            return <article className="admin-support-request" key={request.id}>
+              <div className="admin-support-request-top">
+                <div>
+                  <h3>{request.subject}</h3>
+                  <p>{customer?.full_name || 'Customer'} · {customer?.email || request.user_id}</p>
+                  <small>{request.category} · {dateLabel(request.created_at)}</small>
+                </div>
+                <span className={`admin-support-status status-${request.status}`}>{request.status.replace('_', ' ')}</span>
+              </div>
+              <p className="admin-support-message">{request.message}</p>
+              {request.admin_response && <div className="admin-support-existing-reply">
+                <strong>Current response sent to customer</strong>
+                <p>{request.admin_response}</p>
+                <small>Last updated {dateLabel(request.updated_at)}</small>
+              </div>}
+              <label className="admin-support-reply-label">
+                {request.admin_response ? 'Edit response' : 'Write a response'}
+                <textarea
+                  rows="3"
+                  maxLength="5000"
+                  value={draft}
+                  onChange={event => setSupportReplyDrafts(current => ({ ...current, [request.id]: event.target.value }))}
+                  placeholder="Write a helpful reply to the customer…"
+                />
+              </label>
+              <div className="admin-support-actions">
+                <label>
+                  Request status
+                  <select
+                    value={request.status}
+                    disabled={supportSaving === request.id}
+                    onChange={async event => {
+                      const nextStatus = event.target.value
+                      setSupportSaving(request.id)
+                      setError('')
+                      setMessage('')
+                      try {
+                        const { error: statusError } = await supabase
+                          .from('support_requests')
+                          .update({ status: nextStatus, updated_at: new Date().toISOString() })
+                          .eq('id', request.id)
+                        if (statusError) throw statusError
+                        setMessage('Support request status updated.')
+                        await loadData()
+                      } catch (err) {
+                        setError(err.message || 'Unable to update support status.')
+                      } finally {
+                        setSupportSaving('')
+                      }
+                    }}
+                  >
+                    <option value="open">Open</option>
+                    <option value="in_progress">In progress</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                </label>
+                <button
+                  className="button red"
+                  onClick={() => saveSupportReply(request)}
+                  disabled={supportSaving === request.id || !draft.trim()}
+                >
+                  {supportSaving === request.id ? 'Sending…' : request.admin_response ? 'Update and send reply' : 'Send reply'}
+                </button>
+              </div>
+            </article>
+          })}
+        </div>}
+
+      <style>{`
+        .admin-support-list{display:grid;gap:16px}
+        .admin-support-request{border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+        .admin-support-request-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+        .admin-support-request h3{margin:0 0 5px;font-size:16px;overflow-wrap:anywhere}
+        .admin-support-request-top p,.admin-support-request small{margin:0;color:var(--muted);font-size:11px;overflow-wrap:anywhere}
+        .admin-support-status{display:inline-block;white-space:nowrap;padding:5px 8px;border-radius:20px;background:#f1f1f4;color:#4b4b53;font-size:10px;font-weight:800;text-transform:capitalize}
+        .admin-support-status.status-open{background:#fff2d9;color:#815400}
+        .admin-support-status.status-in_progress{background:#eaf1ff;color:#2854a0}
+        .admin-support-status.status-resolved,.admin-support-status.status-closed{background:#e8f6ed;color:#28764e}
+        .admin-support-message{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;font-size:13px}
+        .admin-support-existing-reply{padding:10px 12px;background:var(--surface, #f7f7f8);border-left:3px solid var(--red, #b51f2a);margin:12px 0}
+        .admin-support-existing-reply p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;margin:7px 0}
+        .admin-support-reply-label{display:grid;gap:7px;font-size:12px;font-weight:700}
+        .admin-support-reply-label textarea{width:100%;resize:vertical;padding:10px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:12px;box-sizing:border-box}
+        .admin-support-actions{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-top:12px;flex-wrap:wrap}
+        .admin-support-actions label{display:grid;gap:6px;font-size:11px;color:var(--muted)}
+        .admin-support-actions select{min-width:140px}
+      `}</style>
     </section>
 
     <section className="panel">
