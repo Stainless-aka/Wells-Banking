@@ -231,12 +231,12 @@ function Transfers({ userId, notificationSettings, onTransferComplete, onRefresh
       full_name: fullName.trim(),
       bank_name: bankName.trim(),
       account_number: accountNumber.trim(),
-      swift_bic: swiftBic.trim().toUpperCase(),
+      swift_bic: swiftBic.trim() ? swiftBic.trim().toUpperCase() : null,
       bank_address: bankAddress.trim(),
       country: country.trim(),
     }
 
-    if (Object.values(beneficiary).some(value => !value) || !amount.trim()) {
+    if ([beneficiary.full_name, beneficiary.bank_name, beneficiary.account_number, beneficiary.bank_address, beneficiary.country].some(value => !value) || !amount.trim()) {
       setError('Complete all required fields before continuing.')
       return
     }
@@ -253,7 +253,7 @@ function Transfers({ userId, notificationSettings, onTransferComplete, onRefresh
       setError('Enter a valid account number.')
       return
     }
-    if (!/^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(beneficiary.swift_bic)) {
+    if (beneficiary.swift_bic && !/^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(beneficiary.swift_bic)) {
       setError('Enter a valid 8- or 11-character SWIFT/BIC code.')
       return
     }
@@ -338,7 +338,7 @@ function Transfers({ userId, notificationSettings, onTransferComplete, onRefresh
       <div className="panel-heading">
         <div>
           <h2>Beneficiary bank details</h2>
-          <p>All fields are required.</p>
+          <p>Fields marked optional can be left blank.</p>
         </div>
       </div>
       <form className="auth-fields transfer-fields" onSubmit={submit}>
@@ -358,10 +358,10 @@ function Transfers({ userId, notificationSettings, onTransferComplete, onRefresh
             autoComplete="off" maxLength={34} required />
         </label>
         <label>
-          SWIFT / BIC Code
+          SWIFT / BIC Code (Optional)
           <input value={swiftBic}
             onChange={e => setSwiftBic(e.target.value.toUpperCase())}
-            autoComplete="off" maxLength={11} required />
+            autoComplete="off" maxLength={11} />
         </label>
         <label>
           Bank Address
