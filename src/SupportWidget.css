@@ -45,3 +45,6 @@
 .support-widget-category{margin:4px 0;color:var(--muted);font-size:11px}
 .support-chat-reply{display:grid;gap:8px;margin:12px 0 16px}
 .support-chat-reply textarea{width:100%;box-sizing:border-box;resize:vertical;padding:10px;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:12px}
+
+.support-widget-history-actions{display:flex;align-items:center;gap:10px}
+.support-widget-history-actions button:first-child{border:1px solid #b51f2a;border-radius:5px;padding:6px 9px}
