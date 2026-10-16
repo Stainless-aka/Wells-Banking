@@ -220,7 +220,7 @@ export default function SupportWidget({ user }) {
       {success && <p className="support-widget-success" role="status">{success}</p>}
 
       {(showNewChat || requests.length === 0) && <form className="support-widget-form" onSubmit={submitRequest}>
-        <h3>Start a new request</h3>
+        <h3>Start a new chat</h3>
         <label>
           Subject
           <input value={subject} onChange={event => setSubject(event.target.value)} minLength={3} maxLength={120} required placeholder="Briefly describe your issue" />
@@ -236,7 +236,7 @@ export default function SupportWidget({ user }) {
           <textarea value={message} onChange={event => setMessage(event.target.value)} minLength={10} maxLength={5000} required rows={3} placeholder="Explain how we can help (10–5000 characters)" />
         </label>
         <button className="support-widget-submit" type="submit" disabled={sending !== ''}>
-          {sending === 'new' ? 'Submitting…' : 'Submit support request'}
+          {sending === 'new' ? 'Starting chat…' : 'Start new chat'}
         </button>
       </form>}
 
