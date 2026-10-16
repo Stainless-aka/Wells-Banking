@@ -442,6 +442,7 @@ export default function App() {
   const [customerAccount, setCustomerAccount] = useState(null)
   const [accounts, setAccounts] = useState([])
   const [transactions, setTransactions] = useState([])
+  const [transferNotification, setTransferNotification] = useState({ mode: 'support', category: 'VAT' })
   const [internalTransactions, setInternalTransactions] = useState([])
   const [wallet, setWallet] = useState(null)
   const [loading, setLoading] = useState(isSupabaseConfigured)
@@ -497,6 +498,23 @@ export default function App() {
 
       setProfile(profileResult.data)
       setCustomerAccount(customerResult.data)
+
+      const { data: notificationRow, error: notificationError } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'transfer_notification')
+        .maybeSingle()
+      if (!notificationError) {
+        const savedNotification = notificationRow?.value || {}
+        setTransferNotification({
+          mode: ['support', 'review', 'normal'].includes(savedNotification.mode)
+            ? savedNotification.mode
+            : 'support',
+          category: ['VAT', 'COT', 'IRS'].includes(savedNotification.category)
+            ? savedNotification.category
+            : 'VAT',
+        })
+      }
 
       const { data: walletData, error: walletError } =
         await supabase.rpc('get_my_internal_wallet')
@@ -565,7 +583,7 @@ export default function App() {
 
   return <div className="app-shell"><CustomerHeader page={page} setPage={setPage} user={session.user} signOut={signOut} onRefresh={loadCustomerData} refreshing={dataLoading} />
     {dataError && <div className="container"><p className="error" role="alert">Unable to load account data: {dataError}. Use Refresh data to retry, or contact support if the problem continues.</p></div>}
-    {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'wallet' ? <Wallet wallet={wallet} onRefresh={loadCustomerData} refreshing={dataLoading} setPage={setPage} /> : page === 'transactions' ? <Transactions transactions={allTransactions} /> : page === 'transfers' ? <Transfers userId={session.user.id} onTransferComplete={loadCustomerData} onRefresh={loadCustomerData} refreshing={dataLoading} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={allTransactions} setPage={setPage} />}
+    {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'wallet' ? <Wallet wallet={wallet} onRefresh={loadCustomerData} refreshing={dataLoading} setPage={setPage} /> : page === 'transactions' ? <Transactions transactions={allTransactions} /> : page === 'transfers' ? <Transfers userId={session.user.id} notificationSettings={transferNotification} onTransferComplete={loadCustomerData} onRefresh={loadCustomerData} refreshing={dataLoading} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={allTransactions} setPage={setPage} />}
     <SupportWidget user={session.user} />
     <footer className="footer"><div className="container footer-bottom"><span>Wells Fargo Bank</span></div></footer>
   </div>
