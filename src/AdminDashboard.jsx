@@ -25,6 +25,7 @@ export default function AdminDashboard({ user, onSignOut }) {
     wallets: [],
     transactions: [],
     supportRequests: [],
+    transferRequests: [],
   })
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
@@ -96,6 +97,12 @@ export default function AdminDashboard({ user, onSignOut }) {
           .from('support_messages')
           .select('id,request_id,sender_id,sender_role,message,created_at')
           .order('created_at', { ascending: true }),
+
+        supabase
+          .from('beneficiary_transfer_requests')
+          .select('id,user_id,full_name,bank_name,account_number,amount_minor,currency,notification_category,request_status,created_at')
+          .order('created_at', { ascending: false })
+          .limit(200),
       ])
 
       const failure = results.find(result => result.error)
@@ -107,6 +114,7 @@ export default function AdminDashboard({ user, onSignOut }) {
         wallets: results[2].data || [],
         transactions: results[3].data || [],
         supportRequests: results[5].data || [],
+        transferRequests: results[7].data || [],
       })
       setSupportMessages(results[6].data || [])
 
@@ -143,6 +151,13 @@ export default function AdminDashboard({ user, onSignOut }) {
         event: '*',
         schema: 'public',
         table: 'support_requests',
+      }, () => {
+        loadData()
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'beneficiary_transfer_requests',
       }, () => {
         loadData()
       })
@@ -187,6 +202,26 @@ export default function AdminDashboard({ user, onSignOut }) {
       await loadData()
     } catch (err) {
       setError(err.message || 'Unable to update status.')
+    } finally {
+      setSaving('')
+    }
+  }
+
+  const updateTransferRequestStatus = async (request, status) => {
+    const key = `transfer-request:${request.id}`
+    setSaving(key)
+    setError('')
+    setMessage('')
+    try {
+      const { error: updateError } = await supabase
+        .from('beneficiary_transfer_requests')
+        .update({ request_status: status })
+        .eq('id', request.id)
+      if (updateError) throw updateError
+      setMessage('Transfer request review status updated. This does not move funds or confirm a completed transfer.')
+      await loadData()
+    } catch (err) {
+      setError(err.message || 'Unable to update transfer request status.')
     } finally {
       setSaving('')
     }
@@ -562,6 +597,17 @@ export default function AdminDashboard({ user, onSignOut }) {
         .admin-support-actions label{display:grid;gap:6px;font-size:11px;color:var(--muted)}
         .admin-support-actions select{min-width:140px}
       `}</style>
+    </section>
+
+    <section className="panel admin-transfer-requests">
+      <div className="panel-heading">
+        <div>
+          <h2>Transfer request review</h2>
+          <p>{data.transferRequests.filter(request => !['declined', 'cancelled'].includes(request.request_status)).length} request(s) awaiting review or processing. Updating a request status does not transfer funds.</p>
+        </div>
+      </div>
+      {!data.transferRequests.length ? <p className="muted">No transfer requests have been submitted.</p> : <div className="table-wrap"><table><thead><tr><th>Reference / Customer</th><th>Beneficiary</th><th>Submitted</th><th>Category</th><th>Amount</th><th>Request status</th></tr></thead><tbody>{data.transferRequests.map(request => <tr key={request.id}><td><strong>{request.id.slice(0, 8).toUpperCase()}</strong><br /><small>{profilesById[request.user_id]?.email || request.user_id}</small></td><td>{request.full_name || '—'}<br /><small>{request.bank_name || '—'} · account ending {String(request.account_number || '').slice(-4) || '—'}</small></td><td>{dateLabel(request.created_at)}</td><td>{['VAT', 'COT', 'IRS'].includes(request.notification_category) ? request.notification_category + ' review label' : 'General'}</td><td>{money(request.amount_minor, request.currency || 'USD')}</td><td><select aria-label={`Review status for request ${request.id}`} value={request.request_status || 'submitted'} disabled={saving === `transfer-request:${request.id}`} onChange={event => updateTransferRequestStatus(request, event.target.value)}><option value="submitted">Initiated — pending review</option><option value="under_review">Under review</option><option value="approved_for_processing">Approved for processing</option><option value="declined">Declined</option><option value="cancelled">Cancelled</option></select></td></tr>)}</tbody></table></div>}
+      <p className="fine">VAT, COT, and IRS are labels only in this app and do not prove that a tax or fee is due. Do not request payment based solely on these labels. This review tool does not execute transfers.</p>
     </section>
 
     <section className="panel">
