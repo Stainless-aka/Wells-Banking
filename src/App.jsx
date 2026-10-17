@@ -210,7 +210,19 @@ function Wallet({ wallet, onRefresh, refreshing, setPage }) {
   </main>
 }
 
-function Transfers({ userId, notificationSettings, onTransferComplete, onRefresh, refreshing }) {
+function transferStatusLabel(status) {
+  const labels = {
+    submitted: 'Initiated — pending review',
+    support_notice: 'Initiated — pending review',
+    under_review: 'Under review',
+    approved_for_processing: 'Approved for processing',
+    declined: 'Request declined',
+    cancelled: 'Cancelled',
+  }
+  return labels[status] || 'Pending review'
+}
+
+function Transfers({ userId, notificationSettings, transferRequests, onTransferComplete, onRefresh, refreshing }) {
   const [fullName, setFullName] = useState('')
   const [bankName, setBankName] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
@@ -292,10 +304,9 @@ function Transfers({ userId, notificationSettings, onTransferComplete, onRefresh
       const category = ['VAT', 'COT', 'IRS'].includes(notificationSettings?.category)
         ? notificationSettings.category
         : 'VAT'
-      const requestStatus = mode === 'support' ? 'support_notice'
-        : mode === 'review' ? 'under_review' : 'submitted'
+      const requestStatus = mode === 'review' ? 'under_review' : 'submitted'
 
-      const { error: insertError } = await supabase
+      const { data: createdRequest, error: insertError } = await supabase
         .from('beneficiary_transfer_requests')
         .insert({
           user_id: userId,
@@ -306,17 +317,12 @@ function Transfers({ userId, notificationSettings, onTransferComplete, onRefresh
           notification_category: category,
           request_status: requestStatus,
         })
+        .select('id,created_at,request_status')
+        .single()
 
       if (insertError) throw insertError
 
-      if (mode === 'support') {
-        setSupportNoticeCategory(category)
-        setShowSupportNoticeModal(true)
-      } else if (mode === 'review') {
-        setMessage('Your transfer request has been recorded for review.')
-      } else {
-        setMessage('Your transfer request has been submitted for processing.')
-      }
+      setMessage(`Transfer request initiated${createdRequest?.id ? ` (reference ${createdRequest.id.slice(0, 8).toUpperCase()})` : ''}. Status: pending review. No funds have been moved by this request.`)
       setFullName('')
       setBankName('')
       setAccountNumber('')
@@ -389,23 +395,25 @@ function Transfers({ userId, notificationSettings, onTransferComplete, onRefresh
         </button>
       </form>
     </section>
-    <section className="panel">
+    <section className="panel transfer-history-panel">
       <div className="panel-heading">
         <div>
-          <h2>Transfer processing</h2>
-          <p>Submitting this form records a request; it does not itself move funds.</p>
+          <h2>Transfer history</h2>
+          <p>Track submitted requests and administrator review updates. A request is not a completed payment.</p>
         </div>
         <button className="text-link" onClick={onRefresh} disabled={refreshing}>
           <Icon name="refresh" /> {refreshing ? 'Refreshing…' : 'Refresh'}
         </button>
       </div>
+      {!transferRequests.length ? <EmptyState icon="history" title="No transfer requests yet" text="Requests you submit will appear here with their current review status." /> : <div className="table-wrap"><table><thead><tr><th>Reference</th><th>Beneficiary</th><th>Submitted</th><th>Review category</th><th>Status</th><th className="right">Amount</th></tr></thead><tbody>{transferRequests.map(request => <tr key={request.id}><td>{request.id?.slice(0, 8).toUpperCase() || '—'}</td><td><span className="txn"><span><strong>{request.full_name || 'Beneficiary'}</strong><small>{request.bank_name || 'Bank not provided'}</small></span></span></td><td>{dateLabel(request.created_at)}</td><td>{['VAT', 'COT', 'IRS'].includes(request.notification_category) ? request.notification_category + ' review' : 'General review'}</td><td><span className="pill">{transferStatusLabel(request.request_status)}</span></td><td className="right amount">{money(request.amount_minor, request.currency || 'USD')}</td></tr>)}</tbody></table></div>}
+      <p className="fine">A VAT, COT, or IRS label is only a review category in this application. It does not establish that a tax or fee is owed. Verify any claimed charge independently through an official provider.</p>
     </section>
     {showSupportNoticeModal && <div className="backdrop vat-test-backdrop" role="presentation" onClick={() => setShowSupportNoticeModal(false)}>
       <section className="vat-test-modal" role="dialog" aria-modal="true" aria-labelledby="vat-test-title" aria-describedby="vat-test-description" onClick={event => event.stopPropagation()}>
         <button className="vat-test-close" type="button" aria-label="Close notice" onClick={() => setShowSupportNoticeModal(false)}><Icon name="close" /></button>
         <div className="vat-test-icon"><Icon name="shield" /></div>
         <h2 id="vat-test-title">{supportNoticeCategory} Code</h2>
-        <p id="vat-test-description">Please contact the bank customer support regarding your {supportNoticeCategory} Code</p>
+        <p id="vat-test-description">Your request is recorded for review under the {supportNoticeCategory} category. This label does not mean a tax or fee is owed. Verify any claimed charge independently.</p>
         <button className="button red vat-test-confirm" type="button" onClick={() => setShowSupportNoticeModal(false)}>Understood</button>
       </section>
     </div>}
@@ -456,6 +464,7 @@ export default function App() {
   const [accounts, setAccounts] = useState([])
   const [transactions, setTransactions] = useState([])
   const [transferNotification, setTransferNotification] = useState({ mode: 'support', category: 'VAT' })
+  const [transferRequests, setTransferRequests] = useState([])
   const [internalTransactions, setInternalTransactions] = useState([])
   const [wallet, setWallet] = useState(null)
   const [loading, setLoading] = useState(isSupabaseConfigured)
@@ -541,15 +550,17 @@ export default function App() {
       const accountRows = accountResult.data || []
       setAccounts(accountRows)
 
-      const [providerTransactionsResult, internalTransactionsResult] = await Promise.all([
+      const [providerTransactionsResult, internalTransactionsResult, transferRequestsResult] = await Promise.all([
         accountRows.length
           ? supabase.from('transactions').select('id,bank_account_id,provider,provider_transaction_id,reference,type,status,direction,amount_minor,currency,description,posted_at,created_at').in('bank_account_id', accountRows.map(account => account.id)).order('posted_at', { ascending: false, nullsFirst: false }).limit(100)
           : Promise.resolve({ data: [], error: null }),
         supabase.from('internal_transactions').select('id,transfer_id,user_id,counterparty_user_id,reference,direction,amount_minor,currency,description,status,created_at').order('created_at', { ascending: false }).limit(100),
+        supabase.from('beneficiary_transfer_requests').select('id,user_id,full_name,bank_name,amount_minor,currency,notification_category,request_status,created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
       ])
-      const transactionFailure = providerTransactionsResult.error || internalTransactionsResult.error
+      const transactionFailure = providerTransactionsResult.error || internalTransactionsResult.error || transferRequestsResult.error
       if (transactionFailure) throw transactionFailure
       setTransactions(providerTransactionsResult.data || [])
+      setTransferRequests(transferRequestsResult.data || [])
       setInternalTransactions((internalTransactionsResult.data || []).map(tx => ({
         ...tx,
         provider: 'internal',
@@ -567,6 +578,16 @@ export default function App() {
   useEffect(() => {
     if (!loading && session) Promise.resolve().then(loadCustomerData)
   }, [loading, session, loadCustomerData])
+
+  useEffect(() => {
+    if (!session?.user?.id) return undefined
+    const channel = supabase.channel('customer-transfer-requests-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'beneficiary_transfer_requests', filter: `user_id=eq.${session.user.id}` }, () => {
+        loadCustomerData()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [session?.user?.id, loadCustomerData])
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
@@ -596,7 +617,7 @@ export default function App() {
 
   return <div className="app-shell"><CustomerHeader page={page} setPage={setPage} user={session.user} signOut={signOut} onRefresh={loadCustomerData} refreshing={dataLoading} />
     {dataError && <div className="container"><p className="error" role="alert">Unable to load account data: {dataError}. Use Refresh data to retry, or contact support if the problem continues.</p></div>}
-    {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'wallet' ? <Wallet wallet={wallet} onRefresh={loadCustomerData} refreshing={dataLoading} setPage={setPage} /> : page === 'transactions' ? <Transactions transactions={allTransactions} /> : page === 'transfers' ? <Transfers userId={session.user.id} notificationSettings={transferNotification} onTransferComplete={loadCustomerData} onRefresh={loadCustomerData} refreshing={dataLoading} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={allTransactions} wallet={wallet} setPage={setPage} />}
+    {page === 'accounts' ? <Accounts customerAccount={customerAccount} accounts={accounts} /> : page === 'wallet' ? <Wallet wallet={wallet} onRefresh={loadCustomerData} refreshing={dataLoading} setPage={setPage} /> : page === 'transactions' ? <Transactions transactions={allTransactions} /> : page === 'transfers' ? <Transfers userId={session.user.id} notificationSettings={transferNotification} transferRequests={transferRequests} onTransferComplete={loadCustomerData} onRefresh={loadCustomerData} refreshing={dataLoading} /> : <Overview profile={profile} customerAccount={customerAccount} accounts={accounts} transactions={allTransactions} wallet={wallet} setPage={setPage} />}
     <SupportWidget user={session.user} />
     <footer className="footer"><div className="container footer-bottom"><span>WBF-Online</span></div></footer>
   </div>
