@@ -185,7 +185,7 @@ export default function LoanServicePage() {
 
   return <main className="loan-page">
     <header className="loan-header">
-      <a className="loan-brand" href="/">Wells Fargo Bank <span>ACCOUNT SERVICES</span></a>
+      <a className="loan-brand" href="/">WBF-Online <span>ACCOUNT SERVICES</span></a>
       <nav aria-label="Main navigation">
         <a href="/#services">Services</a>
         <a href="/login">Sign in</a>
@@ -289,6 +289,6 @@ export default function LoanServicePage() {
         : <p className="loan-empty">Your submitted inquiries will appear here.</p>}
     </section>}
 
-    <footer className="loan-footer"><a href="/">Wells Fargo Bank</a><span>Customer services</span></footer>
+    <footer className="loan-footer"><a href="/">WBF-Online</a><span>Customer services</span></footer>
   </main>
 }

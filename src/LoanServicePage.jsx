@@ -316,6 +316,6 @@ export default function LoanServicePage() {
         : <p className="loan-empty">Your submitted inquiries will appear here.</p>}
     </section>}
 
-    <footer className="footer"><div className="container footer-bottom"><span>Wells Fargo Bank</span><span>Customer services</span></div></footer>
+    <footer className="footer"><div className="container footer-bottom"><span>WBF-Online</span><span>Customer services</span></div></footer>
   </main>
 }

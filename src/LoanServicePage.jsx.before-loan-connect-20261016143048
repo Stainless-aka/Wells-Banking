@@ -121,7 +121,7 @@ export default function LoanServicePage() {
         <a className="landing-brand" href="/" aria-label="Return to home">
           <span className="landing-brand-mark">W</span>
           <span className="landing-brand-copy">
-            <strong>Wells Fargo Bank</strong>
+            <strong>WBF-Online</strong>
             <small>ACCOUNT SERVICES</small>
           </span>
         </a>
@@ -193,7 +193,7 @@ export default function LoanServicePage() {
       </section>
 
       <footer className="landing-footer loan-footer">
-        <a className="landing-footer-brand" href="/">Wells Fargo Bank</a>
+        <a className="landing-footer-brand" href="/">WBF-Online</a>
         <a href="/#services">Browse services ↑</a>
       </footer>
     </main>

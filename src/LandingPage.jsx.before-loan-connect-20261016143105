@@ -70,7 +70,7 @@ export default function LandingPage() {
         <a className="landing-brand" href="/" aria-label="Home">
           <span className="landing-brand-mark">W</span>
           <span className="landing-brand-copy">
-            <strong>Wells Fargo Bank</strong>
+            <strong>WBF-Online</strong>
             <small>ACCOUNT SERVICES</small>
           </span>
         </a>
@@ -220,7 +220,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="landing-footer">
-        <a className="landing-footer-brand" href="/">Wells Fargo Bank</a>
+        <a className="landing-footer-brand" href="/">WBF-Online</a>
         <span>Independent banking interface.</span>
         <a href="#security">Security information ↑</a>
       </footer>

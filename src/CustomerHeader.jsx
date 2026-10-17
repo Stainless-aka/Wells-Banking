@@ -59,7 +59,7 @@ export default function CustomerHeader({
         <button className="brand" onClick={goHome} aria-label="Customer portal home">
           <span className="brand-mark">W</span>
           <span className="brand-copy">
-            <strong>Wells Fargo Bank</strong>
+            <strong>WBF-Online</strong>
             <small>ACCOUNT SERVICES</small>
           </span>
         </button>
